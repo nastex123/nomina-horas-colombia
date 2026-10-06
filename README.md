@@ -14,7 +14,7 @@ MVP web para autorizar y liquidar nómina por horas con recargos legales Colombi
 - Persistencia: `employees + payslips + app_params + send_log`. `app.py:64-91`
 
 > [!IMPORTANT]
-> El plan antiguo TS + Drizzle + better-sqlite3 queda archivado como alternativa. No implementado. Ver `GDD_DECISIONES.md`.
+> El plan antiguo TS + Drizzle + better-sqlite3 queda archivado como alternativa. No implementado. Ver `docs/GDD_DECISIONES.md`.
 
 ## 3. Quickstart
 ```bash
@@ -62,22 +62,30 @@ Ejemplo RN-06 verificado `app.py:liquidar`: tarifa 20.000, 150/10/8h, 1 hijo →
 
 ## 7. Estructura repo
 ```text
-app.py (448 líneas, servidor+motor+DB+gestión puerto --force)
-index.html (UI + fetch + tabla + params + log)
-nomina.db (+wal/shm en runtime)
-SRS_FUNCIONAL.md / TDD_TECNICO.md / DICCIONARIO_DATOS.md
-ROADMAP.md / TODO.md / CHANGELOG.md / GDD_DECISIONES.md / MANUAL_OPERATIVO.md / MODELO_NEGOCIO.md
+app.py                  # Servidor HTTP, motor de cálculo, SQLite y gestión de puerto
+index.html              # Interfaz web responsiva
+nomina.db               # Base de datos SQLite (WAL + FK)
+TODO.md                 # Tareas y pendientes
+CHANGELOG.md            # Registro histórico de versiones
+docs/                   # Documentación técnica y especificaciones
+  ├── SRS_FUNCIONAL.md      # Requerimientos funcionales y reglas de negocio
+  ├── TDD_TECNICO.md        # Arquitectura técnica, endpoints y pruebas
+  ├── DICCIONARIO_DATOS.md  # Modelo relacional y campos
+  ├── GDD_DECISIONES.md     # Registro de decisiones de diseño (ADRs)
+  ├── MANUAL_OPERATIVO.md   # Guía operativa y troubleshooting
+  ├── MODELO_NEGOCIO.md     # Justificación de negocio y casos de uso
+  └── ROADMAP.md            # Fases de evolución del sistema
 ```
 
 ## 8. Legal CO vigente Oct-2026
 - Nocturna 7pm–6am desde 25-dic-2025. Recargo +35% → 1.35.
 - Dominical/festivo diurno +90% → 1.90 (1-jul-2026 a 30-jun-2027). Sube a 2.0 el 1-jul-2027.
 - Jornada máxima 42h/sem desde 15-jul-2026.
-- Detalle fuentes y gradualidad en `SRS_FUNCIONAL.md §2`.
+- Detalle fuentes y gradualidad en `docs/SRS_FUNCIONAL.md §2`.
 
 ## 9. Docs relacionados
-- Funcional: `SRS_FUNCIONAL.md` · Técnico: `TDD_TECNICO.md` · Datos: `DICCIONARIO_DATOS.md`
-- Plan: `ROADMAP.md` · Pendientes: `TODO.md` · Cambios: `CHANGELOG.md` · Decisiones: `GDD_DECISIONES.md` · Uso: `MANUAL_OPERATIVO.md` · Negocio: `MODELO_NEGOCIO.md`
+- Funcional: `docs/SRS_FUNCIONAL.md` · Técnico: `docs/TDD_TECNICO.md` · Datos: `docs/DICCIONARIO_DATOS.md`
+- Plan: `docs/ROADMAP.md` · Pendientes: `TODO.md` · Cambios: `CHANGELOG.md` · Decisiones: `docs/GDD_DECISIONES.md` · Uso: `docs/MANUAL_OPERATIVO.md` · Negocio: `docs/MODELO_NEGOCIO.md`
 
 > [!TIP]
 > Siguiente paso sugerido: validar con contabilidad el neto 3.519.424 sin caja y congelar `v2026-10-3ded`.
