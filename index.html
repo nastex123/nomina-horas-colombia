@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>MVP Liquidación — HTML + Python + SQLite</title>
+<style>
+:root{--bg:#f6f7f9;--surface:#fff;--ink:#16283c;--muted:#5b6b7f;--primary:#0f2a44;--primary-hover:#16395c;--border:#d9e0e8;--ok:#1a7f4b;--warn:#9a5b00;--danger:#b3261e;--radius:8px;--shadow:0 1px 2px rgba(15,42,68,.08),0 4px 12px rgba(15,42,68,.08)}
+*,*::before,*::after{box-sizing:border-box;min-width:0}
+html,body{max-width:100%;overflow-x:clip}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header.site{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);min-height:64px;display:flex;align-items:center;padding:8px 0}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px;width:100%}
+nav.main{display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap}
+nav.main .brand{white-space:nowrap}
+nav.main .links{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav.main a{text-decoration:none;font-weight:600;padding:8px 10px;border-radius:var(--radius);white-space:nowrap}
+nav.main a:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
+main{padding:24px 0 40px}
+.grid{display:grid;gap:16px;grid-template-columns:1fr;min-width:0}
+@media(min-width:900px){.grid-2{grid-template-columns:380px minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0;max-width:100%;overflow:hidden}
+h1{font-size:clamp(20px,4vw,26px);margin:8px 0 4px;overflow-wrap:break-word}
+h2{font-size:18px;margin:0 0 12px}
+.muted{color:var(--muted);font-size:14px;overflow-wrap:break-word}
+p.muted{max-width:70ch}
+code{overflow-wrap:break-word}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+input,select{width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:#fff}
+.row3{display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
+@media(min-width:560px){.row3{grid-template-columns:1fr 1fr 1fr}}
+.pct-wrap{position:relative}
+.pct-wrap input{padding-right:30px}
+.pct-wrap::after{content:"%";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none}
+.factor-hint{font-size:12px;color:var(--muted)}
+.params-total{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;background:#eef2f6;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-weight:700;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius);border:1px solid transparent;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;transition:transform 150ms ease-out,background 150ms ease-out,opacity 150ms;max-width:100%;overflow-wrap:break-word}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px)}
+.btn-secondary{background:#eaf0f6;color:var(--primary);border-color:var(--border)}.btn-secondary:hover{transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--primary)}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 10px;font-size:13px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.table-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border);vertical-align:top;overflow-wrap:anywhere;word-break:break-word}
+th{background:#eef2f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+td .muted{overflow-wrap:anywhere}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:#f1f4f8;white-space:nowrap}
+.badge.ok{background:#e6f4ec;border-color:#bfe3cd;color:var(--ok)}.badge.warn{background:#fff4dd;border-color:#f0d48a;color:var(--warn)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;min-width:0}
+.kv strong{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+footer.site{background:var(--surface);border-top:1px solid var(--border);padding:24px 0;margin-top:24px}
+.foot-grid{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+@media(min-width:768px){.foot-grid{grid-template-columns:repeat(4,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+pre.log{background:#0f1e30;color:#d7e3f0;padding:12px;border-radius:var(--radius);max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+/* Móvil: tabla → cards apiladas, nada se sale */
+@media(max-width:700px){
+  .wrap{padding:0 12px}
+  nav.main .subtitle{display:none}
+  table{min-width:0}
+  table thead{display:none}
+  table,table tbody,table tr,table td{display:block;width:100%;max-width:100%}
+  table tr{border-bottom:2px solid var(--border);padding:6px 0}
+  table td{border-bottom:1px dashed var(--border);padding:8px 10px}
+  table td:last-child{border-bottom:0}
+  table td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+  .kv{grid-template-columns:1fr auto}
+  .btn{flex:1 1 auto}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap"><nav class="main" aria-label="Principal"><strong class="brand">Liquidación MVP</strong><span class="muted subtitle">HTML + Python + SQLite · v1.3.1</span><div class="links"><a href="#empleados">Empleados</a><a href="#liquidacion">Autorización</a><a href="#envios">Envíos</a><a href="#params">Parámetros</a></div></nav></div></header>
+<main class="wrap">
+<h1>Autorización y liquidación por horas</h1>
+<p class="muted">Base IBC (CO): recargos nocturnos/dominicales y extras <strong>sí son salario</strong> y suman a la base. Subsidio hijos y aux. transporte <strong>no</strong> entran a la base. Deducciones solo 3 sobre base: salud + pensión + ARL (editables en % abajo). Neto = base − ded + subsidio. Recargos: ×1.0 / ×1.35 (7pm–6am) / ×1.90 dom. Persistencia Python + SQLite.</p>
+<div class="grid grid-2">
+<section class="card" id="empleados" aria-label="Formulario"><h2 id="formTitle">Nuevo empleado</h2>
+<form id="frm"><input type="hidden" id="f_id">
+<label for="f_nombre">Nombre</label><input id="f_nombre" required maxlength="120" autocomplete="name">
+<label for="f_email">Email (destino envío)</label><input id="f_email" type="email" required maxlength="160" autocomplete="email" style="overflow-wrap:anywhere">
+<div class="row3"><div><label for="f_cargo">Cargo</label><select id="f_cargo"><option value="gerente">gerente</option><option value="administrativo" selected>administrativo</option><option value="operario">operario</option></select></div>
+<div><label for="f_hijos">Hijos</label><input id="f_hijos" type="number" min="0" step="1" value="0" required></div>
+<div><label for="f_activo">Activo</label><select id="f_activo"><option value="1">sí</option><option value="0">no</option></select></div></div>
+<label for="f_tarifa">Tarifa hora ordinaria COP (la ingresas tú)</label><input id="f_tarifa" type="number" min="1" step="1" value="20000" required>
+<div class="row3"><div><label for="f_ord">H. ord</label><input id="f_ord" type="number" min="0" step="0.5" value="150"></div>
+<div><label for="f_noct">H. noct</label><input id="f_noct" type="number" min="0" step="0.5" value="10"></div>
+<div><label for="f_dom">H. dom/fest</label><input id="f_dom" type="number" min="0" step="0.5" value="0"></div></div>
+<div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn btn-ghost" type="button" id="btnClear">Limpiar</button></div>
+<p class="muted" id="formErr" role="alert"></p></form></section>
+<section class="card" id="liquidacion"><h2>Empleados y autorización</h2>
+<div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Horas / tarifa</th><th>Cálculo (base IBC)</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tbody"></tbody></table></div>
+<p class="muted">Flujo: Borrador → En revisión → Autorizada → Enviada. Backend: <code>python3 app.py --port 8000 --force</code>.</p></section>
+</div>
+<div class="grid grid-2" style="margin-top:16px">
+<section class="card" id="params"><h2>Parámetros (3 ded en %)</h2>
+<div class="row3"><div><label for="p_salud">Salud %</label><div class="pct-wrap"><input id="p_salud" type="number" step="0.001" min="0" max="100" inputmode="decimal"></div></div>
+<div><label for="p_pension">Pensión %</label><div class="pct-wrap"><input id="p_pension" type="number" step="0.001" min="0" max="100" inputmode="decimal"></div></div>
+<div><label for="p_arl">ARL %</label><div class="pct-wrap"><input id="p_arl" type="number" step="0.0001" min="0" max="100" inputmode="decimal"></div></div></div>
+<div class="row3"><div><label for="p_noct">Rec noct (factor)</label><input id="p_noct" type="number" step="0.01" min="1"><span class="factor-hint">1.35 = +35%</span></div>
+<div><label for="p_dom">Rec dom (factor)</label><input id="p_dom" type="number" step="0.01" min="1"><span class="factor-hint">1.90 = +90%</span></div>
+<div><label>Versión</label><span class="muted" id="p_ver"></span></div></div>
+<div class="params-total"><span>Total ded: <span id="p_total">—</span></span><span class="muted" id="paramsErr" role="alert"></span></div>
+<div class="actions" style="margin-top:12px"><button class="btn btn-secondary btn-sm" id="btnParams">Guardar params</button><button class="btn btn-ghost btn-sm" id="btnSeed">Cargar ejemplo</button></div></section>
+<section class="card" id="envios"><h2>Envíos (SQLite log)</h2><pre class="log" id="log" aria-live="polite">Sin envíos.</pre></section>
+</div></main>
+<footer class="site"><div class="wrap foot-grid"><div><strong>Producto</strong><br><span class="muted">MVP liquidación base IBC</span></div><div><strong>Recursos</strong><br><span class="muted">SRS · TDD · app.py</span></div><div><strong>Legal</strong><br><span class="muted">Ley 2466/2025 · IBC con recargos</span></div><div><strong>Versión</strong><br><span class="muted">v1.3.1 · SQLite + %</span></div></div></footer>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>new Intl.NumberFormat('es-CO',{maximumFractionDigits:0}).format(Math.round(n));
+const fmtPct=n=>{const v=Math.round(Number(n)*1000)/1000;return (Number.isFinite(v)?v:0).toString().replace('.',',');};
+let editing=null;
+async function api(m,u,b){const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function updateTotal(){const s=parseFloat($('p_salud').value)||0;const p=parseFloat($('p_pension').value)||0;const a=parseFloat($('p_arl').value)||0;const t=Math.round((s+p+a)*1000)/1000;$('p_total').textContent=fmtPct(t)+' %';}
+['p_salud','p_pension','p_arl'].forEach(id=>$(id).addEventListener('input',updateTotal));
+async function refresh(){const emps=await api('GET','/api/employees');const logs=await api('GET','/api/logs');const p=await api('GET','/api/params');
+$('p_salud').value=Math.round(p.salud*100*1000)/1000;$('p_pension').value=Math.round(p.pension*100*1000)/1000;$('p_arl').value=Math.round(p.arl*100*10000)/10000;$('p_noct').value=p.recNoct;$('p_dom').value=p.recDom;$('p_ver').textContent=p.version;updateTotal();
+const tb=$('tbody');tb.innerHTML='';
+for(const e of emps){const c=e.calc;const tr=document.createElement('tr');
+tr.innerHTML=`<td data-label="Empleado"><strong>${esc(e.nombre)}</strong><br><span class="muted">${esc(e.cargo)} · ${e.activo?'activo':'inactivo'}<br>${esc(e.email)}<br>${e.numHijos} hijo(s)</span></td><td data-label="Horas / tarifa" class="muted">ord ${e.hOrd} · noct ${e.hNoct} · dom ${e.hDom}<br>tarifa $${fmt(e.tarifa)}</td><td data-label="Cálculo (base IBC)"><div class="kv"><span>Base IBC</span><strong>$${fmt(c.base)}</strong><span>Subsidio (fuera base)</span><strong>$${fmt(c.sub)}</strong><span>Ded 3</span><strong>$${fmt(c.total)}</strong><span>Neto = base−ded+sub</span><strong>$${fmt(c.neto)}</strong></div><span class="muted">salud $${fmt(c.dSalud)} · pen $${fmt(c.dPen)} · arl $${fmt(c.dArl)}</span></td><td data-label="Estado"><span class="badge ${e.estado==='Autorizada'||e.estado==='Enviada'?'ok':e.estado==='En revisión'?'warn':''}">${esc(e.estado)}</span></td><td data-label="Acciones"></td>`;
+const td=tr.lastElementChild;const box=document.createElement('div');box.className='actions';
+const mk=(t,cls,fn,dis)=>{const b=document.createElement('button');b.className='btn '+cls+' btn-sm';b.textContent=t;b.disabled=!!dis;b.onclick=fn;box.appendChild(b);};
+const locked=['En revisión','Autorizada','Enviada'].includes(e.estado);
+mk('Editar','btn-secondary',()=>onEdit(e),locked);
+mk('A revisión','btn-secondary',()=>setEstado(e,'En revisión'),e.estado!=='Borrador');
+mk('Autorizar','btn-primary',()=>setEstado(e,'Autorizada'),e.estado!=='En revisión');
+mk('Enviar','btn-primary',()=>setEstado(e,'Enviada'),e.estado!=='Autorizada');
+td.appendChild(box);tb.appendChild(tr);}
+$('log').textContent=logs.length?logs.slice(-30).join('\n'):'Sin envíos.';}
+function onEdit(e){editing=e.id;$('f_id').value=e.id;$('f_nombre').value=e.nombre;$('f_email').value=e.email;$('f_cargo').value=e.cargo;$('f_hijos').value=e.numHijos;$('f_tarifa').value=e.tarifa;$('f_ord').value=e.hOrd;$('f_noct').value=e.hNoct;$('f_dom').value=e.hDom;$('f_activo').value=e.activo?'1':'0';$('formTitle').textContent='Editar '+e.nombre;window.scrollTo({top:0,behavior:'smooth'});}
+function resetForm(){$('frm').reset();editing=null;$('f_id').value='';$('formTitle').textContent='Nuevo empleado';$('formErr').textContent='';$('f_hijos').value=0;$('f_tarifa').value=20000;$('f_ord').value=150;$('f_noct').value=10;$('f_dom').value=0;}
+$('btnClear').onclick=resetForm;
+$('frm').onsubmit=async ev=>{ev.preventDefault();$('formErr').textContent='';
+const b={nombre:$('f_nombre').value.trim(),email:$('f_email').value.trim(),cargo:$('f_cargo').value,numHijos:parseInt($('f_hijos').value,10),tarifa:parseFloat($('f_tarifa').value),hOrd:parseFloat($('f_ord').value)||0,hNoct:parseFloat($('f_noct').value)||0,hDom:parseFloat($('f_dom').value)||0,activo:$('f_activo').value==='1'};
+try{if(editing){await api('PUT','/api/employees/'+editing,b);}else{await api('POST','/api/employees',b);}resetForm();await refresh();}catch(e){$('formErr').textContent=e.message;}};
+async function setEstado(e,est){try{await api('POST',`/api/employees/${e.id}/estado`,{estado:est});await refresh();}catch(err){alert(err.message);}}
+$('btnParams').onclick=async()=>{try{$('paramsErr').textContent='';const s=parseFloat($('p_salud').value);const pe=parseFloat($('p_pension').value);const a=parseFloat($('p_arl').value);const rn=parseFloat($('p_noct').value);const rd=parseFloat($('p_dom').value);
+if([s,pe,a,rn,rd].some(v=>!Number.isFinite(v))){$('paramsErr').textContent='Revisa números.';return;}
+if(s<0||s>100||pe<0||pe>100||a<0||a>100){$('paramsErr').textContent='Ded 0–100%.';return;}
+if(rn<1||rd<1){$('paramsErr').textContent='Recargos ≥ 1.';return;}
+await api('PUT','/api/params',{salud:s/100,pension:pe/100,arl:a/100,recNoct:rn,recDom:rd});await refresh();}catch(e){$('paramsErr').textContent=e.message;}};
+$('btnSeed').onclick=async()=>{await api('POST','/api/seed');await refresh();};
+refresh().catch(()=>{$('tbody').innerHTML='<tr><td colspan="5">Inicia backend: <code>python3 app.py</code> y abre http://localhost:8000</td></tr>';});
+</script>
+</body>
+</html>
