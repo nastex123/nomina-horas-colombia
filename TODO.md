@@ -1,7 +1,8 @@
-# TODO — v1.4 validación + MVP verificado + puerto --force + front responsive
+# TODO — v1.4.1 estructura docs + MVP verificado + puerto --force + front responsive
 **Fuente:** `app.py` + `index.html` · **Zona:** America/Bogota
 
 ## DONE ✅
+- [x] Organización limpia: agrupación de especificaciones técnicas en `docs/` y sincronización de referencias. `README.md` + `CHANGELOG.md`
 - [x] Front responsive sin overflow: cards + scroll, `row3` colapsable, `%` directo con total vivo. `index.html`
 - [x] Params 3 ded en % + backend acepta fracción/`% >1`/`"x%"` con validación. Verificado 8781/8782 + neto 3519424.
 - [x] Puerto: `--force` libera y retoma (8771/8772 verificado), `--help`, `connect_ex` O(1). `app.py:360-448`

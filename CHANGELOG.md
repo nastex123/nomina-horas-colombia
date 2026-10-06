@@ -1,6 +1,17 @@
 # CHANGELOG — Nómina por horas
 **Zona:** America/Bogota · Formato: `Versión — fecha — Qué / Vs anterior`
 
+## [v1.4.1-structure] — 2026-10-06
+### Qué
+- Organización limpia de repositorio: agrupación de especificaciones técnicas y funcionales en subdirectorio `docs/` (`SRS_FUNCIONAL.md`, `TDD_TECNICO.md`, `DICCIONARIO_DATOS.md`, `GDD_DECISIONES.md`, `MANUAL_OPERATIVO.md`, `MODELO_NEGOCIO.md`, `ROADMAP.md`).
+- Conservación de `app.py`, `index.html`, `nomina.db`, `README.md`, `CHANGELOG.md` y `TODO.md` en raíz para ejecución directa con fricción cero.
+- Sincronización de enlaces relativos y diagrama de estructura de directorios en `README.md`.
+### Vs anterior
+- Antes: 14 archivos planos en la raíz del repositorio mezclando código de ejecución con 9 documentos markdown.
+- Ahora: Raíz limpia con puntos de entrada directos y documentación modularizada en `docs/`.
+### Verificación
+- `git status` con renames preservados; ejecución `python3 app.py --help` verificada exitosa.
+
 ## [v1.3.2-front] — 2026-10-06
 ### Qué
 - Front responsive sin overflow: `overflow-x:clip`, cards ≤700px con `data-label`, `row3` 1 col ≤560px, header/nav wrap, `pre.log` wrap, `esc()` anti-XSS.
