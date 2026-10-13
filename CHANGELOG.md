@@ -1,6 +1,32 @@
 # CHANGELOG — Nómina por horas
 **Zona:** America/Bogota · Formato: `Versión — fecha — Qué / Vs anterior`
 
+## [v1.7.0-bulk-workflow-qol] — 2026-10-13
+### Qué
+- **Flujo de estados y liquidación en lotes:**
+  - Endpoint `POST /api/employees/bulk-estado` que permite transicionar lotes de empleados seleccionados:
+    - `Borrador` → `En revisión` (disponible en Modo Mortal y Admin).
+    - `En revisión` → `Autorizada` con snapshot congelado de parámetros legales (Modo Admin).
+    - `Autorizada` → `Enviada` generando auditoría contable en `send_log` (Modo Admin).
+  - Manejo tolerante de lotes: procesa únicamente los registros que cumplen el estado previo requerido y reporta omisiones sin bloquear.
+- **Teléfono celular y simulación de WhatsApp (Requerimiento + Propuesta 15):**
+  - Columna `telefono TEXT` en `employees` con celulares colombianos realistas (`+57 3XXXXXXXXX`).
+  - Modal interactivo con simulación de mensaje formal para WhatsApp con formato contable (IBC, deducciones de ley, subsidio y neto), enlace directo a `https://wa.me/` y plantilla de correo corporativo formal.
+- **Dashboard de Métricas KPIs en cabecera (Propuesta 3):**
+  - Tarjetas en tiempo real: Total Nómina Neta (COP), Base Salarial IBC, Total Deducciones de Ley (8.522%) y Total Horas laboradas desglosadas por tipo.
+- **Historial y Auditoría de Empleado (Timeline) (Propuesta 5):**
+  - Endpoint `GET /api/employees/:id/audit` y modal en UI para inspeccionar todos los meses liquidados, tarifas históricas y registros en `send_log` por trabajador.
+- **Importación Masiva de Horas desde CSV / Planilla (Propuesta 10):**
+  - Endpoint `POST /api/employees/import-hours` y modal con subida de archivo `.csv` o texto plano pegado (`cedula,h_ord,h_noct,h_dom`) para actualizar horas del mes en curso para empleados en Borrador.
+- **Búsqueda inteligente con resaltado (Propuesta 11):**
+  - Búsqueda en vivo que resalta visualmente coincidencias con `<mark>` en nombre, cédula, correo corporativo y celular.
+- **Modo Oscuro / Modo Claro Nativo (Propuesta 12):**
+  - Alternador de tema en cabecera con paleta de alto contraste y persistencia en `localStorage`.
+
+### Vs anterior
+- Antes: El avance de estados era estrictamente individual fila por fila; no existía número telefónico ni simulación para WhatsApp; no había métricas acumuladas del mes ni importador CSV; no existía visor de auditoría individual ni modo oscuro.
+- Ahora: Experiencia de liquidación masiva corporativa completa con KPIs en vivo, automatización por lotes, canales de notificación simulados, importador biométrico/CSV y ergonomía visual avanzada.
+
 ## [v1.6.0-personal-history] — 2026-10-13
 ### Qué
 - **Datos personales del empleado:** Incorporación de Cédula de Ciudadanía (`cedula TEXT UNIQUE`), Edad (`edad INTEGER`) y Tipo de Sangre (`tipo_sangre TEXT` con valores válidos `O+`, `O-`, `A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`) en el modelo relacional `employees`.
