@@ -1,6 +1,22 @@
 # CHANGELOG — Nómina por horas
 **Zona:** America/Bogota · Formato: `Versión — fecha — Qué / Vs anterior`
 
+## [v1.6.0-personal-history] — 2026-10-13
+### Qué
+- **Datos personales del empleado:** Incorporación de Cédula de Ciudadanía (`cedula TEXT UNIQUE`), Edad (`edad INTEGER`) y Tipo de Sangre (`tipo_sangre TEXT` con valores válidos `O+`, `O-`, `A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`) en el modelo relacional `employees`.
+- **Historial de liquidaciones mes a mes:** Creación de la tabla `payslips_history` indexada por `(employee_id, periodo)` en formato `YYYY-MM`. Permite auditar y liquidar períodos pasados (`2026-09`, `2026-08`, etc.) y abrir períodos futuros (`2026-11`) manteniendo la inmutabilidad de los meses cerrados o enviados.
+- **Selector y gestión de períodos en UI:** Selector de mes en cabecera para alternar períodos en tiempo real tanto en Modo Mortal como en Modo Administrador. Modal de administrador para crear nuevos períodos mensuales.
+- **Buscador extendido:** Búsqueda en vivo por nombre, correo o cédula de ciudadanía.
+- **Nuevos endpoints REST:**
+  - `GET /api/periods`: Listado de meses disponibles con conteo de empleados y estado.
+  - `POST /api/periods`: Apertura de nuevo período (`YYYY-MM`) e inicialización de liquidaciones en Borrador.
+  - Parámetro de consulta `?periodo=YYYY-MM` en `GET /api/employees`.
+  - Soporte de `periodo` en `POST /api/employees/bulk-hours` y `POST /api/employees/:id/estado`.
+
+### Vs anterior
+- Antes: El sistema operaba sobre un único estado de nómina plano (`payslips`), sin diferenciar meses ni guardar histórico congelado de períodos anteriores. Los empleados solo tenían nombre, email, cargo y tarifa.
+- Ahora: Trazabilidad histórica mensual completa (`payslips_history`), datos médicos y de identificación para cumplimiento laboral/SST colombiano, y generador de personal ajustado a demografía realista colombiana.
+
 ## [v1.5.0-dual-roles] — 2026-10-13
 ### Qué
 - **Dos modos de visualización e interacción:** Selector en encabezado para alternar inmediatamente entre `Modo Mortal (Operativo)` y `Modo Administrador` sin requerir contraseñas.

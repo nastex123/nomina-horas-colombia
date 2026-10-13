@@ -28,7 +28,7 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-s
 
 /* Header & Navigation */
 header.site{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.wrap{max-width:1200px;margin:0 auto;padding:0 16px;width:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px;width:100%}
 nav.main{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .brand-box{display:flex;align-items:center;gap:10px}
 .brand-logo{background:var(--primary);color:#fff;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
@@ -51,7 +51,7 @@ p.desc{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:85ch}
 /* Grid & Cards */
 .grid{display:grid;gap:16px;grid-template-columns:1fr;min-width:0}
 @media(min-width:960px){
-  .grid-admin{grid-template-columns:370px minmax(0,1fr)}
+  .grid-admin{grid-template-columns:420px minmax(0,1fr)}
   .grid-rates{grid-template-columns:repeat(3,1fr)}
 }
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;min-width:0;position:relative}
@@ -90,16 +90,17 @@ input:focus,select:focus{border-color:var(--accent);outline:2px solid var(--acce
 .bulk-bar-inputs input:focus{background:#fff;color:#000}
 
 /* Filter Toolbar */
-.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;background:#fff;padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border)}
 .filter-search{flex:1 1 240px;position:relative}
 .filter-search input{padding-left:32px}
 .filter-search::before{content:"🔍";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.6}
 .filter-select{flex:0 0 170px}
+.period-select-wrap{display:flex;align-items:center;gap:8px}
 .filter-count{font-size:13px;color:var(--muted);font-weight:600;margin-left:auto}
 
 /* Table */
 .table-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:780px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
 th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 th{background:#f1f5f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;user-select:none}
 tbody tr:hover{background:#f9fbfe}
@@ -150,7 +151,7 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
         <div class="brand-logo">N</div>
         <div>
           <div class="brand-title">Liquidación Nómina Colombia</div>
-          <div class="brand-sub">Ley 2466/2025 · Base IBC · Horas y Recargos</div>
+          <div class="brand-sub">Ley 2466/2025 · Base IBC · Multi-periodo Histórico Mes a Mes</div>
         </div>
       </div>
       
@@ -177,14 +178,37 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
   <!-- SECCIÓN ADMINISTRADOR: Configuración, Tarifas, Generador y Registro -->
   <div id="adminPanel" style="display:none; margin-bottom:20px">
     <div class="grid grid-admin">
-      <!-- Formulario para agregar personal -->
+      <!-- Formulario para agregar personal con datos personales colombianos -->
       <section class="card" aria-label="Formulario Nuevo Empleado">
         <h2 id="formTitle">Agregar Personal</h2>
         <form id="frmEmp">
           <input type="hidden" id="f_id">
           <div>
             <label for="f_nombre">Nombre Completo</label>
-            <input id="f_nombre" required maxlength="120" placeholder="Ej. Carlos Mendoza">
+            <input id="f_nombre" required maxlength="120" placeholder="Ej. Carlos Mendoza Gómez">
+          </div>
+          <div class="row-inputs">
+            <div>
+              <label for="f_cedula">Cédula de Ciudadanía</label>
+              <input id="f_cedula" required maxlength="15" placeholder="Ej. 1032456789">
+            </div>
+            <div>
+              <label for="f_edad">Edad</label>
+              <input id="f_edad" type="number" min="18" max="75" value="28" required>
+            </div>
+            <div>
+              <label for="f_tiposangre">Tipo de Sangre</label>
+              <select id="f_tiposangre">
+                <option value="O+" selected>O+</option>
+                <option value="O-">O-</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
           </div>
           <div>
             <label for="f_email">Email Corporativo</label>
@@ -237,7 +261,7 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
             <span class="badge info">Propagación Automática</span>
           </h2>
           <p class="muted" style="font-size:12px;margin:0 0 10px">
-            Al modificar la tarifa de un cargo, se actualizan automáticamente las liquidaciones en estado <strong>Borrador</strong> asociadas a ese cargo.
+            Al modificar la tarifa de un cargo, se actualizan automáticamente las liquidaciones en estado <strong>Borrador</strong> asociadas a ese cargo en el mes en curso.
           </p>
           <div class="grid grid-rates">
             <div>
@@ -325,10 +349,15 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
     </div>
   </div>
 
-  <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+  <!-- BARRA DE FILTROS, HISTORIAL MES A MES Y BÚSQUEDA -->
   <div class="filter-bar">
+    <div class="period-select-wrap">
+      <label for="selPeriodo" style="margin:0;font-size:12px;font-weight:700">📅 Mes / Periodo:</label>
+      <select id="selPeriodo" style="font-weight:700;width:auto;min-width:140px"></select>
+      <button class="btn btn-secondary btn-sm" id="btnOpenPeriodModal" type="button" style="display:none" title="Crear nuevo periodo mensual">+ Nuevo Mes</button>
+    </div>
     <div class="filter-search">
-      <input type="text" id="filterText" placeholder="Buscar por nombre o correo corporativo..." autocomplete="off">
+      <input type="text" id="filterText" placeholder="Buscar por nombre, cédula o email..." autocomplete="off">
     </div>
     <div class="filter-select">
       <select id="filterCargo" aria-label="Filtrar por cargo">
@@ -357,7 +386,7 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
         <thead>
           <tr>
             <th class="th-check"><input type="checkbox" id="chkSelectAll" title="Seleccionar todos los visibles"></th>
-            <th>Empleado</th>
+            <th>Empleado y Datos Personales</th>
             <th>Horas Registradas</th>
             <th>Tarifa Hora</th>
             <th>Cálculo Nómina (Base IBC)</th>
@@ -385,7 +414,7 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
 <div class="modal-overlay" id="genModal">
   <div class="modal">
     <h3 class="modal-title">✨ Generar Personal Ficticio</h3>
-    <p class="modal-desc">Crea automáticamente empleados con nombres colombianos, cargos, hijos y horas realistas directamente en la base de datos.</p>
+    <p class="modal-desc">Crea automáticamente empleados con nombres colombianos, cédula, edad, RH, cargos, hijos y horas realistas directamente en la base de datos.</p>
     <form id="frmGen">
       <div style="margin-bottom:12px">
         <label for="gen_count">¿Cuántos empleados deseas generar?</label>
@@ -408,6 +437,24 @@ pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-heig
   </div>
 </div>
 
+<!-- MODAL: Habilitar Nuevo Periodo Mensual -->
+<div class="modal-overlay" id="periodModal">
+  <div class="modal">
+    <h3 class="modal-title">📅 Habilitar Nuevo Periodo Mensual</h3>
+    <p class="modal-desc">Crea una nueva liquidación mensual para todos los empleados activos, preservando intacto el historial de los meses anteriores.</p>
+    <form id="frmNewPeriod">
+      <div style="margin-bottom:16px">
+        <label for="new_periodo">Mes / Periodo (formato AAAA-MM)</label>
+        <input id="new_periodo" type="text" pattern="\d{4}-(0[1-9]|1[0-2])" placeholder="Ej. 2026-11" required>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" id="btnClosePeriodModal">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="btnSubmitPeriod">Crear Periodo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <footer class="site" style="background:#fff;border-top:1px solid var(--border);padding:20px 0;margin-top:30px">
   <div class="wrap" style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:10px">
     <div><strong>Sistema de Nómina SENA</strong> · Python 3 stdlib + SQLite3 (Cero dependencias)</div>
@@ -422,6 +469,8 @@ function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','
 
 // Estado global de la aplicación
 let allEmployees = [];
+let availablePeriods = [];
+let selectedPeriod = localStorage.getItem('sena_nomina_period') || '2026-10';
 let selectedIds = new Set();
 let currentMode = localStorage.getItem('sena_nomina_mode') || 'mortal'; // 'mortal' o 'admin'
 let editingEmpId = null;
@@ -451,9 +500,10 @@ function setMode(mode) {
 
     $('adminPanel').style.display = 'block';
     $('adminLogPanel').style.display = 'block';
+    $('btnOpenPeriodModal').style.display = 'inline-flex';
 
     $('bannerIcon').textContent = '⚙️';
-    $('bannerText').innerHTML = '<strong>Modo Administrador:</strong> Puedes agregar personal, modificar las tarifas oficiales por cargo (las cuales propagan automáticamente a las liquidaciones en Borrador), generar personal ficticio y autorizar o enviar la nómina.';
+    $('bannerText').innerHTML = '<strong>Modo Administrador:</strong> Administra empleados (cédula, edad, RH), modifica tarifas oficiales por cargo, habilita nuevos periodos mensuales y autoriza o envía la nómina.';
   } else {
     $('btnModeMortal').classList.add('active');
     $('btnModeMortal').setAttribute('aria-checked', 'true');
@@ -462,9 +512,10 @@ function setMode(mode) {
 
     $('adminPanel').style.display = 'none';
     $('adminLogPanel').style.display = 'none';
+    $('btnOpenPeriodModal').style.display = 'none';
 
     $('bannerIcon').textContent = '👤';
-    $('bannerText').innerHTML = '<strong>Modo Mortal (Operativo):</strong> Selecciona 1 o más empleados mediante las casillas de verificación o filtros para asignar horas. Puedes visualizar el cálculo contable completo y pasar el estado a <em>En revisión</em>.';
+    $('bannerText').innerHTML = '<strong>Modo Mortal (Operativo):</strong> Navega por el historial mes a mes, busca por nombre o cédula, selecciona empleados y asigna horas de forma masiva o individual.';
   }
 
   renderTable();
@@ -473,18 +524,53 @@ function setMode(mode) {
 $('btnModeMortal').onclick = () => setMode('mortal');
 $('btnModeAdmin').onclick = () => setMode('admin');
 
-// Carga y actualización de datos
-async function refresh() {
+// Carga y actualización de periodos y datos
+async function loadPeriods() {
   try {
-    const [emps, logs, cargos] = await Promise.all([
-      api('GET', '/api/employees'),
+    const res = await api('GET', '/api/periods');
+    availablePeriods = res.periods || ['2026-10'];
+    if (!availablePeriods.includes(selectedPeriod)) {
+      selectedPeriod = availablePeriods[0];
+    }
+    const sel = $('selPeriodo');
+    sel.innerHTML = '';
+    for (const p of availablePeriods) {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = `${p}${p === '2026-10' ? ' (Mes en curso)' : ' (Histórico)'}`;
+      if (p === selectedPeriod) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+$('selPeriodo').onchange = () => {
+  selectedPeriod = $('selPeriodo').value;
+  localStorage.setItem('sena_nomina_period', selectedPeriod);
+  selectedIds.clear();
+  refreshEmployees();
+};
+
+async function refreshEmployees() {
+  try {
+    const emps = await api('GET', `/api/employees?periodo=${encodeURIComponent(selectedPeriod)}`);
+    allEmployees = emps;
+    renderTable();
+  } catch (err) {
+    $('tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;padding:20px">Error al cargar empleados: ${err.message}</td></tr>`;
+  }
+}
+
+async function refresh() {
+  await loadPeriods();
+  try {
+    const [logs, cargos] = await Promise.all([
       api('GET', '/api/logs'),
       api('GET', '/api/cargos')
     ]);
 
-    allEmployees = emps;
-
-    // Actualizar inputs de tarifas por cargo si existen
     if (cargos) {
       if ($('rate_gerente') && !document.activeElement.id?.includes('rate_')) $('rate_gerente').value = cargos.gerente || 35000;
       if ($('rate_admin') && !document.activeElement.id?.includes('rate_')) $('rate_admin').value = cargos.administrativo || 20000;
@@ -492,13 +578,13 @@ async function refresh() {
     }
 
     $('log').textContent = logs.length ? logs.slice(-30).join('\n') : 'Sin envíos registrados.';
-    renderTable();
+    await refreshEmployees();
   } catch (err) {
-    $('tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;padding:20px">Error al conectar con el servidor: ${err.message}</td></tr>`;
+    console.error(err);
   }
 }
 
-// Renderizado de tabla con filtros y selección
+// Renderizado de tabla con filtros, búsqueda por cédula y selección
 function getFilteredEmployees() {
   const q = $('filterText').value.trim().toLowerCase();
   const c = $('filterCargo').value;
@@ -510,7 +596,8 @@ function getFilteredEmployees() {
     if (q) {
       const matchNom = e.nombre.toLowerCase().includes(q);
       const matchEmail = e.email.toLowerCase().includes(q);
-      if (!matchNom && !matchEmail) return false;
+      const matchCc = String(e.cedula || '').includes(q);
+      if (!matchNom && !matchEmail && !matchCc) return false;
     }
     return true;
   });
@@ -518,7 +605,7 @@ function getFilteredEmployees() {
 
 function updateBulkBadge() {
   const count = selectedIds.size;
-  $('selectedCountBadge').textContent = `${count} empleado${count === 1 ? '' : 's'} seleccionado${count === 1 ? '' : 's'}`;
+  $('selectedCountBadge').textContent = `${count} empleado${count === 1 ? '' : 's'} seleccionado${count === 1 ? '' : 's'} (${selectedPeriod})`;
   $('btnApplyBulk').disabled = count === 0;
 }
 
@@ -527,14 +614,13 @@ function renderTable() {
   const tb = $('tbody');
   tb.innerHTML = '';
 
-  $('filterCountDisplay').textContent = `Mostrando ${filtered.length} de ${allEmployees.length} empleados`;
+  $('filterCountDisplay').textContent = `Periodo ${selectedPeriod}: ${filtered.length} de ${allEmployees.length} empleados`;
 
-  // Comprobar estado del checkbox "Seleccionar todos"
   const allFilteredSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
   $('chkSelectAll').checked = allFilteredSelected;
 
   if (filtered.length === 0) {
-    tb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">No se encontraron empleados con los filtros aplicados.</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">No se encontraron empleados en el periodo ${esc(selectedPeriod)} con los filtros aplicados.</td></tr>`;
     updateBulkBadge();
     return;
   }
@@ -545,13 +631,9 @@ function renderTable() {
     const isSel = selectedIds.has(e.id);
     if (isSel) tr.classList.add('selected');
 
-    // Badge de cargo
     const cargoBadgeClass = e.cargo === 'gerente' ? 'ok' : (e.cargo === 'administrativo' ? 'info' : 'warn');
-
-    // Formato de horas
     const horasStr = `Ord: <strong>${e.hOrd}</strong>h | Noct: <strong>${e.hNoct}</strong>h | Dom: <strong>${e.hDom}</strong>h`;
 
-    // Botones según el modo
     let actionButtons = '';
     const locked = ['En revisión', 'Autorizada', 'Enviada'].includes(e.estado);
 
@@ -565,10 +647,9 @@ function renderTable() {
         </div>
       `;
     } else {
-      // Modo Mortal: solo asignar horas individuales o enviar a revisión
       actionButtons = `
         <div class="actions">
-          <button class="btn btn-secondary btn-sm" onclick="quickEditHours('${e.id}')" ${locked ? 'disabled' : ''} title="Editar horas de este empleado">✏️ Horas</button>
+          <button class="btn btn-secondary btn-sm" onclick="quickEditHours('${e.id}')" ${locked ? 'disabled' : ''} title="Editar horas de este mes">✏️ Horas</button>
           <button class="btn btn-primary btn-sm" onclick="cambiarEstado('${e.id}', 'En revisión')" ${e.estado !== 'Borrador' ? 'disabled' : ''}>A revisión</button>
         </div>
       `;
@@ -579,9 +660,17 @@ function renderTable() {
         <input type="checkbox" class="chk-emp" data-id="${e.id}" ${isSel ? 'checked' : ''}>
       </td>
       <td>
-        <strong>${esc(e.nombre)}</strong><br>
-        <span class="badge ${cargoBadgeClass} badge-cargo">${esc(e.cargo)}</span>
-        <span class="muted" style="font-size:11px"> · ${esc(e.email)} · ${e.numHijos} hijo(s)</span>
+        <strong>${esc(e.nombre)}</strong>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          <span>C.C. <strong>${esc(e.cedula)}</strong></span> · 
+          <span>${e.edad} años</span> · 
+          <span class="badge info" style="padding:1px 6px;font-size:10px">RH: ${esc(e.tipoSangre)}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          <span class="badge ${cargoBadgeClass} badge-cargo">${esc(e.cargo)}</span> · 
+          <span>${esc(e.email)}</span> · 
+          <span>${e.numHijos} hijo(s)</span>
+        </div>
       </td>
       <td>
         <span style="font-size:12px">${horasStr}</span>
@@ -607,7 +696,6 @@ function renderTable() {
       </td>
     `;
 
-    // Evento de selección de casilla
     const chk = tr.querySelector('.chk-emp');
     chk.onchange = (ev) => {
       ev.stopPropagation();
@@ -650,7 +738,7 @@ $('btnClearSelection').onclick = () => {
   renderTable();
 };
 
-// Asignación Masiva de Horas
+// Asignación Masiva de Horas (aplica al mes seleccionado)
 $('btnApplyBulk').onclick = async () => {
   if (selectedIds.size === 0) return;
 
@@ -665,25 +753,25 @@ $('btnApplyBulk').onclick = async () => {
 
   const ids = Array.from(selectedIds);
   try {
-    const res = await api('POST', '/api/employees/bulk-hours', { ids, hOrd, hNoct, hDom });
-    alert(`¡Horas asignadas con éxito a ${res.updated} empleado(s)!`);
+    const res = await api('POST', '/api/employees/bulk-hours', { ids, hOrd, hNoct, hDom, periodo: selectedPeriod });
+    alert(`¡Horas asignadas con éxito a ${res.updated} empleado(s) en el periodo ${selectedPeriod}!`);
     selectedIds.clear();
-    await refresh();
+    await refreshEmployees();
   } catch (err) {
     alert(`Error al asignar horas: ${err.message}`);
   }
 };
 
-// Edición rápida individual de horas (para mortal)
+// Edición rápida individual de horas
 window.quickEditHours = async (id) => {
   const emp = allEmployees.find(e => e.id === id);
   if (!emp) return;
 
-  const nOrd = prompt(`Horas ordinarias para ${emp.nombre}:`, emp.hOrd);
+  const nOrd = prompt(`[${selectedPeriod}] Horas ordinarias para ${emp.nombre}:`, emp.hOrd);
   if (nOrd === null) return;
-  const nNoct = prompt(`Horas nocturnas (7pm–6am) para ${emp.nombre}:`, emp.hNoct);
+  const nNoct = prompt(`[${selectedPeriod}] Horas nocturnas (7pm–6am) para ${emp.nombre}:`, emp.hNoct);
   if (nNoct === null) return;
-  const nDom = prompt(`Horas dominicales/festivas para ${emp.nombre}:`, emp.hDom);
+  const nDom = prompt(`[${selectedPeriod}] Horas dominicales/festivas para ${emp.nombre}:`, emp.hDom);
   if (nDom === null) return;
 
   const hOrd = parseFloat(nOrd) || 0;
@@ -691,8 +779,8 @@ window.quickEditHours = async (id) => {
   const hDom = parseFloat(nDom) || 0;
 
   try {
-    await api('POST', '/api/employees/bulk-hours', { ids: [id], hOrd, hNoct, hDom });
-    await refresh();
+    await api('POST', '/api/employees/bulk-hours', { ids: [id], hOrd, hNoct, hDom, periodo: selectedPeriod });
+    await refreshEmployees();
   } catch (err) {
     alert(err.message);
   }
@@ -718,18 +806,18 @@ $('btnSaveRates').onclick = async () => {
     $('rateMsg').textContent = '✓ ¡Tarifas actualizadas y propagadas a empleados en Borrador!';
     $('rateMsg').style.color = 'var(--ok)';
     setTimeout(() => { $('rateMsg').textContent = ''; }, 4000);
-    await refresh();
+    await refreshEmployees();
   } catch (err) {
     $('rateMsg').textContent = `Error: ${err.message}`;
     $('rateMsg').style.color = 'var(--danger)';
   }
 };
 
-// Flujo de estados (Borrador -> En revisión -> Autorizada -> Enviada)
+// Flujo de estados (Borrador -> En revisión -> Autorizada -> Enviada) con soporte de periodo
 window.cambiarEstado = async (id, nuevoEstado) => {
   try {
-    await api('POST', `/api/employees/${id}/estado`, { estado: nuevoEstado });
-    await refresh();
+    await api('POST', `/api/employees/${id}/estado`, { estado: nuevoEstado, periodo: selectedPeriod });
+    await refreshEmployees();
   } catch (err) {
     alert(`No se pudo cambiar de estado: ${err.message}`);
   }
@@ -743,6 +831,9 @@ $('frmEmp').onsubmit = async (ev) => {
   const tVal = $('f_tarifa').value.trim();
   const payload = {
     nombre: $('f_nombre').value.trim(),
+    cedula: $('f_cedula').value.trim(),
+    edad: parseInt($('f_edad').value, 10),
+    tipoSangre: $('f_tiposangre').value,
     email: $('f_email').value.trim(),
     cargo: $('f_cargo').value,
     numHijos: parseInt($('f_hijos').value, 10),
@@ -760,7 +851,7 @@ $('frmEmp').onsubmit = async (ev) => {
       await api('POST', '/api/employees', payload);
     }
     resetEmpForm();
-    await refresh();
+    await refreshEmployees();
   } catch (err) {
     $('formErr').textContent = err.message;
   }
@@ -772,6 +863,9 @@ window.editEmp = (id) => {
   editingEmpId = e.id;
   $('f_id').value = e.id;
   $('f_nombre').value = e.nombre;
+  $('f_cedula').value = e.cedula || '';
+  $('f_edad').value = e.edad || 28;
+  $('f_tiposangre').value = e.tipoSangre || 'O+';
   $('f_email').value = e.email;
   $('f_cargo').value = e.cargo;
   $('f_hijos').value = e.numHijos;
@@ -792,6 +886,7 @@ function resetEmpForm() {
   $('formTitle').textContent = 'Agregar Personal';
   $('btnSaveEmp').textContent = 'Guardar Empleado';
   $('formErr').textContent = '';
+  $('f_edad').value = 28;
   $('f_hijos').value = 0;
   $('f_ord').value = 150;
   $('f_noct').value = 10;
@@ -815,8 +910,8 @@ $('frmGen').onsubmit = async (ev) => {
   try {
     const res = await api('POST', '/api/generate-employees', { count, cargo });
     $('genModal').classList.remove('open');
-    alert(`✓ Se generaron ${res.created} empleados ficticios con éxito.`);
-    await refresh();
+    alert(`✓ Se generaron ${res.created} empleados ficticios con cédula, edad y RH con éxito.`);
+    await refreshEmployees();
   } catch (err) {
     alert(`Error: ${err.message}`);
   } finally {
@@ -825,13 +920,37 @@ $('frmGen').onsubmit = async (ev) => {
   }
 };
 
+// Modal Nuevo Periodo Mensual
+$('btnOpenPeriodModal').onclick = () => { $('periodModal').classList.add('open'); };
+$('btnClosePeriodModal').onclick = () => { $('periodModal').classList.remove('open'); };
+$('periodModal').onclick = (e) => { if (e.target === $('periodModal')) $('periodModal').classList.remove('open'); };
+
+$('frmNewPeriod').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const newPeriod = $('new_periodo').value.trim();
+  $('btnSubmitPeriod').disabled = true;
+
+  try {
+    const res = await api('POST', '/api/periods', { periodo: newPeriod });
+    $('periodModal').classList.remove('open');
+    alert(`✓ Periodo ${res.periodo} habilitado con éxito.`);
+    selectedPeriod = res.periodo;
+    await loadPeriods();
+    await refreshEmployees();
+  } catch (err) {
+    alert(`Error al crear periodo: ${err.message}`);
+  } finally {
+    $('btnSubmitPeriod').disabled = false;
+  }
+};
+
 // Reiniciar base a 100 empleados ficticios
 $('btnResetSeed').onclick = async () => {
-  if (!confirm('¿Deseas restablecer la base de datos completa a 100 empleados ficticios colombianos?')) return;
+  if (!confirm('¿Deseas restablecer la base de datos completa a 100 empleados ficticios colombianos con historial mes a mes?')) return;
   try {
     await api('POST', '/api/seed');
     selectedIds.clear();
-    alert('✓ Base de datos reiniciada con 100 empleados ficticios colombianos.');
+    alert('✓ Base de datos reiniciada con 100 empleados ficticios colombianos e historial.');
     await refresh();
   } catch (err) {
     alert(`Error: ${err.message}`);

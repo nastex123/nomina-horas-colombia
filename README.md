@@ -52,17 +52,20 @@ Ejemplo RN-06 verificado `app.py:liquidar`: tarifa 20.000, 150/10/8h, 1 hijo →
 ## 6. API mínima
 | Método | Ruta | Uso |
 |---|---|---|
-| GET | `/`, `/index.html` | UI interactiva (Modo Administrador y Modo Mortal) |
-| GET | `/api/health`, `/api/params`, `/api/employees`, `/api/logs` | Lectura + diagnóstico |
+| GET | `/`, `/index.html` | UI interactiva (Modo Administrador, Modo Mortal y Selector de Período Mes a Mes) |
+| GET | `/api/health`, `/api/params`, `/api/logs` | Diagnóstico, parámetros legales y bitácora de envíos |
+| GET | `/api/periods` | Listar períodos mensuales disponibles (`YYYY-MM`) |
+| POST | `/api/periods` | Crear nuevo período mensual (`{"periodo": "2026-11"}`) |
+| GET | `/api/employees?periodo=YYYY-MM` | Empleados con datos personales (Cédula, Edad, RH) y cálculo del mes |
 | GET | `/api/cargos` | Consultar tarifas base oficiales por cargo |
 | PUT | `/api/cargos` | Actualizar tarifas por cargo (propaga a empleados en Borrador) |
-| POST | `/api/employees` | Crear personal (hereda tarifa del cargo) |
+| POST | `/api/employees` | Registrar personal con Cédula, Edad, RH y Cargo |
 | PUT | `/api/employees/:id` | Editar empleado (solo en Borrador) |
-| POST | `/api/employees/bulk-hours` | Asignación masiva de horas a lista de IDs seleccionados |
-| POST | `/api/generate-employees` | Generar personal ficticio paramétrico (count + cargo/mixto) |
-| POST | `/api/employees/:id/estado` | Avanzar flujo lineal (`Borrador` → `En revisión` → `Autorizada` → `Enviada`) |
+| POST | `/api/employees/bulk-hours` | Asignación masiva de horas a IDs seleccionados para un período específico |
+| POST | `/api/generate-employees` | Generar personal ficticio paramétrico (count + cargo/mixto con Cédula y RH) |
+| POST | `/api/employees/:id/estado` | Avanzar flujo lineal en el período (`Borrador` → `En revisión` → `Autorizada` → `Enviada`) |
 | PUT | `/api/params` | Parámetros (deducciones de ley fijas: 4% salud, 4% pensión, 0.522% ARL) |
-| POST | `/api/seed` | Reiniciar y poblar con 100 empleados ficticios colombianos |
+| POST | `/api/seed` | Reiniciar y poblar con empleados ficticios colombianos |
 
 ## 7. Estructura repo
 ```text

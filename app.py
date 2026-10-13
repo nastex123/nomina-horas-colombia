@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "nomina.db"
@@ -38,6 +38,9 @@ DEFAULT_PARAMS = {"salud": 0.04, "pension": 0.04, "arl": 0.00522,
 CARGOS = ("gerente", "administrativo", "operario")
 # Tarifa distinta por cargo (default híbrido, editable vía API/UI). O(1) lookup.
 DEFAULT_CARGO_RATES = {"gerente": 35000, "administrativo": 20000, "operario": 15000}
+
+TIPOS_SANGRE = ("O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-")
+TIPOS_SANGRE_PESOS = [0.65, 0.03, 0.20, 0.02, 0.06, 0.01, 0.025, 0.005]
 
 NOMBRES_COL = [
     "Carlos", "Andrés", "Juan", "Felipe", "Mateo", "Santiago", "Alejandro", "Diego",
@@ -90,6 +93,9 @@ def create_fictional_employees(count: int, cargo_mode: str = "mixto") -> int:
         eid = "emp_" + uuid.uuid4().hex[:8]
         slug_user = f"{_slugify(nom)}.{_slugify(ap1)}"
         email = f"{slug_user}.{uuid.uuid4().hex[:4]}@empresa.co"
+        cedula = f"10{random.randint(10000000, 99999999)}"
+        edad = random.randint(21, 58)
+        tipo_sangre = random.choices(TIPOS_SANGRE, weights=TIPOS_SANGRE_PESOS)[0]
 
         # Distribución de hijos
         hp = random.random()
@@ -111,10 +117,14 @@ def create_fictional_employees(count: int, cargo_mode: str = "mixto") -> int:
 
         try:
             con.execute("""
-                INSERT INTO employees(id, nombre, email, cargo, tarifa, h_ord, h_noct, h_dom, num_hijos, activo, updated_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?)
-            """, (eid, nombre_completo, email, cargo, float(tarifa), float(h_ord), float(h_noct), float(h_dom), hijos, 1, now))
-            con.execute("INSERT INTO payslips(employee_id, estado, updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
+                INSERT INTO employees(id, nombre, cedula, edad, tipo_sangre, email, cargo, tarifa, h_ord, h_noct, h_dom, num_hijos, activo, updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (eid, nombre_completo, cedula, edad, tipo_sangre, email, cargo, float(tarifa), float(h_ord), float(h_noct), float(h_dom), hijos, 1, now))
+            con.execute("INSERT OR IGNORE INTO payslips(employee_id, estado, updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
+            con.execute("""
+                INSERT OR IGNORE INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                VALUES(?, '2026-10', ?, ?, ?, ?, 'Borrador', NULL, ?)
+            """, (eid, float(h_ord), float(h_noct), float(h_dom), float(tarifa), now))
             created += 1
         except sqlite3.IntegrityError:
             continue
@@ -172,10 +182,23 @@ def init_db():
       h_noct REAL NOT NULL DEFAULT 0 CHECK(h_noct>=0),
       h_dom REAL NOT NULL DEFAULT 0 CHECK(h_dom>=0),
       num_hijos INTEGER NOT NULL DEFAULT 0 CHECK(num_hijos>=0),
-      activo INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+      activo INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL,
+      cedula TEXT, edad INTEGER DEFAULT 28, tipo_sangre TEXT DEFAULT 'O+');
     CREATE TABLE IF NOT EXISTS payslips(
       employee_id TEXT PRIMARY KEY REFERENCES employees(id) ON DELETE CASCADE,
       estado TEXT NOT NULL DEFAULT 'Borrador', snap TEXT, updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS payslips_history(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      periodo TEXT NOT NULL,
+      h_ord REAL NOT NULL DEFAULT 0 CHECK(h_ord>=0),
+      h_noct REAL NOT NULL DEFAULT 0 CHECK(h_noct>=0),
+      h_dom REAL NOT NULL DEFAULT 0 CHECK(h_dom>=0),
+      tarifa_aplicada REAL NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'Borrador' CHECK(estado IN ('Borrador','En revisión','Autorizada','Enviada')),
+      snap TEXT,
+      updated_at TEXT NOT NULL,
+      UNIQUE(employee_id, periodo));
     CREATE TABLE IF NOT EXISTS app_params(
       version TEXT PRIMARY KEY, salud REAL NOT NULL, pension REAL NOT NULL,
       arl REAL NOT NULL, rec_noct REAL NOT NULL, rec_dom REAL NOT NULL);
@@ -183,7 +206,29 @@ def init_db():
     CREATE TABLE IF NOT EXISTS cargo_rates(cargo TEXT PRIMARY KEY, tarifa_default REAL NOT NULL CHECK(tarifa_default>0), updated_at TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS idx_emp_email ON employees(email);
     CREATE INDEX IF NOT EXISTS idx_emp_cargo ON employees(cargo);
+    CREATE INDEX IF NOT EXISTS idx_hist_periodo ON payslips_history(periodo);
+    CREATE INDEX IF NOT EXISTS idx_hist_emp_periodo ON payslips_history(employee_id, periodo);
     """)
+
+    # Migración de columnas de datos personales en employees si ya existía la tabla
+    cols = [r["name"] for r in con.execute("PRAGMA table_info(employees)").fetchall()]
+    if "cedula" not in cols:
+        con.execute("ALTER TABLE employees ADD COLUMN cedula TEXT")
+    if "edad" not in cols:
+        con.execute("ALTER TABLE employees ADD COLUMN edad INTEGER DEFAULT 28")
+    if "tipo_sangre" not in cols:
+        con.execute("ALTER TABLE employees ADD COLUMN tipo_sangre TEXT DEFAULT 'O+'")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_emp_cedula ON employees(cedula)")
+
+    # Asignar cédula, edad y tipo de sangre a empleados existentes que no los tengan
+    null_emps = con.execute("SELECT id FROM employees WHERE cedula IS NULL OR cedula = ''").fetchall()
+    for row in null_emps:
+        gen_cc = f"10{random.randint(10000000, 99999999)}"
+        gen_age = random.randint(22, 58)
+        gen_rh = random.choices(TIPOS_SANGRE, weights=TIPOS_SANGRE_PESOS)[0]
+        con.execute("UPDATE employees SET cedula=?, edad=?, tipo_sangre=? WHERE id=?",
+                    (gen_cc, gen_age, gen_rh, row["id"]))
+
     row = con.execute("SELECT * FROM app_params").fetchone()
     if not row:
         con.execute("INSERT INTO app_params(version,salud,pension,arl,rec_noct,rec_dom) VALUES(?,?,?,?,?,?)",
@@ -193,11 +238,51 @@ def init_db():
     for _cargo, _tar in DEFAULT_CARGO_RATES.items():
         con.execute("INSERT OR IGNORE INTO cargo_rates(cargo,tarifa_default,updated_at) VALUES(?,?,?)",
                     (_cargo, float(_tar), now_seed))
+
+    # Poblar historial mes a mes (2026-10 actual, 2026-09 y 2026-08 históricos)
+    has_cur = con.execute("SELECT COUNT(*) c FROM payslips_history WHERE periodo = '2026-10'").fetchone()["c"]
+    if has_cur == 0:
+        emps = con.execute("SELECT * FROM employees").fetchall()
+        slips = {r["employee_id"]: dict(r) for r in con.execute("SELECT * FROM payslips").fetchall()}
+        for e in emps:
+            sl = slips.get(e["id"], {})
+            st = sl.get("estado", "Borrador")
+            snap = sl.get("snap")
+            con.execute("""
+                INSERT OR IGNORE INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                VALUES(?, '2026-10', ?, ?, ?, ?, ?, ?, ?)
+            """, (e["id"], e["h_ord"], e["h_noct"], e["h_dom"], e["tarifa"], st, snap, now_seed))
+
+    p_snap = json.dumps(DEFAULT_PARAMS)
+    for past_p in ["2026-09", "2026-08"]:
+        has_past = con.execute("SELECT COUNT(*) c FROM payslips_history WHERE periodo = ?", (past_p,)).fetchone()["c"]
+        if has_past == 0:
+            emps = con.execute("SELECT * FROM employees").fetchall()
+            for e in emps:
+                past_ord = 160.0
+                past_noct = 10.0 if e["cargo"] == "operario" else 0.0
+                past_dom = 8.0 if e["cargo"] == "operario" else 0.0
+                con.execute("""
+                    INSERT OR IGNORE INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                    VALUES(?, ?, ?, ?, ?, ?, 'Enviada', ?, ?)
+                """, (e["id"], past_p, past_ord, past_noct, past_dom, e["tarifa"], p_snap, f"{past_p}-28T18:00:00+00:00"))
+
     emp_count = con.execute("SELECT COUNT(*) c FROM employees").fetchone()["c"]
     con.commit()
     con.close()
     if emp_count < 100:
         create_fictional_employees(100 - emp_count, "mixto")
+
+
+def get_periods() -> list:
+    """Retorna los periodos disponibles mes a mes en orden descendente."""
+    con = db()
+    rows = con.execute("SELECT DISTINCT periodo FROM payslips_history ORDER BY periodo DESC").fetchall()
+    con.close()
+    periods = [r["periodo"] for r in rows]
+    if "2026-10" not in periods:
+        periods.insert(0, "2026-10")
+    return periods
 
 
 def get_params() -> dict:
@@ -247,6 +332,25 @@ def validate_emp(b, for_update=False):
     for f in ["nombre", "email", "cargo", "numHijos"]:
         if f not in b and not for_update:
             return f"Falta {f}"
+    if not for_update:
+        if "cedula" not in b or not str(b["cedula"]).strip():
+            return "Falta cédula."
+        if "edad" not in b:
+            return "Falta edad."
+    if "cedula" in b and str(b["cedula"]).strip():
+        clean_cc = re.sub(r'[^0-9]', '', str(b["cedula"]))
+        if len(clean_cc) < 6 or len(clean_cc) > 12:
+            return "Cédula debe tener entre 6 y 12 dígitos."
+    if "edad" in b and b["edad"] is not None and str(b["edad"]).strip() != "":
+        try:
+            ed = int(b["edad"])
+            if not (18 <= ed <= 75):
+                return "Edad debe estar entre 18 y 75 años."
+        except (TypeError, ValueError):
+            return "Edad debe ser un número entero."
+    if "tipoSangre" in b and b["tipoSangre"]:
+        if b["tipoSangre"] not in TIPOS_SANGRE:
+            return f"Tipo de sangre inválido. Opciones: {', '.join(TIPOS_SANGRE)}"
     if "email" in b and not EMAIL_RE.match(str(b["email"])):
         return "Email inválido."
     if "cargo" in b and b["cargo"] not in ("gerente", "administrativo", "operario"):
@@ -260,8 +364,6 @@ def validate_emp(b, for_update=False):
             pass  # 0 = usar default del cargo
         elif not (_t > 0):
             return "Tarifa debe ser > 0."
-    for f in ["hOrd", "h_noct", "hNoct", "h_dom", "hDom", "h_ord"]:
-        pass
     h_ord = float(b.get("hOrd", b.get("h_ord", 0)))
     h_noct = float(b.get("hNoct", b.get("h_noct", 0)))
     h_dom = float(b.get("hDom", b.get("h_dom", 0)))
@@ -313,20 +415,46 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(get_params())
         if u.path == "/api/cargos":
             return self._json(get_cargo_rates())
+        if u.path == "/api/periods":
+            return self._json({"periods": get_periods(), "current": "2026-10"})
         if u.path == "/api/employees":
+            query = parse_qs(u.query)
+            periodo = query.get("periodo", ["2026-10"])[0]
             con = db()
-            rows = con.execute("SELECT * FROM employees ORDER BY nombre").fetchall()  # O(n log n) por ORDER BY
-            slips = {r["employee_id"]: dict(r) for r in con.execute("SELECT * FROM payslips")}
+            rows = con.execute("SELECT * FROM employees ORDER BY nombre").fetchall()
+            hist_rows = {r["employee_id"]: dict(r) for r in con.execute(
+                "SELECT * FROM payslips_history WHERE periodo=?", (periodo,)).fetchall()}
+            slips = {r["employee_id"]: dict(r) for r in con.execute("SELECT * FROM payslips").fetchall()}
             con.close()
             p = get_params()
             out = []
-            for r in rows:  # O(n), subsidio O(1)
-                e = {"id": r["id"], "nombre": r["nombre"], "email": r["email"], "cargo": r["cargo"],
-                     "tarifa": r["tarifa"], "hOrd": r["h_ord"], "hNoct": r["h_noct"], "hDom": r["h_dom"],
-                     "numHijos": r["num_hijos"], "activo": bool(r["activo"])}
-                slip = slips.get(e["id"], {"estado": "Borrador", "snap": None})
-                snap = json.loads(slip["snap"]) if slip.get("snap") else p
-                out.append({**e, "estado": slip.get("estado", "Borrador"), "calc": liquidar(e, snap)})
+            for r in rows:
+                h = hist_rows.get(r["id"])
+                h_ord = h["h_ord"] if h else r["h_ord"]
+                h_noct = h["h_noct"] if h else r["h_noct"]
+                h_dom = h["h_dom"] if h else r["h_dom"]
+                tarifa = h["tarifa_aplicada"] if h else r["tarifa"]
+                estado = h["estado"] if h else slips.get(r["id"], {}).get("estado", "Borrador")
+                snap = json.loads(h["snap"]) if (h and h.get("snap")) else p
+                e = {
+                    "id": r["id"],
+                    "nombre": r["nombre"],
+                    "cedula": r["cedula"] or "",
+                    "edad": r["edad"] or 28,
+                    "tipoSangre": r["tipo_sangre"] or "O+",
+                    "email": r["email"],
+                    "cargo": r["cargo"],
+                    "tarifa": tarifa,
+                    "hOrd": h_ord,
+                    "hNoct": h_noct,
+                    "hDom": h_dom,
+                    "numHijos": r["num_hijos"],
+                    "activo": bool(r["activo"]),
+                    "estado": estado,
+                    "periodo": periodo
+                }
+                e["calc"] = liquidar(e, snap)
+                out.append(e)
             return self._json(out)
         if u.path == "/api/logs":
             con = db()
@@ -337,6 +465,28 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         u = urlparse(self.path)
+        if u.path == "/api/periods":
+            b = self._body()
+            periodo = str(b.get("periodo", "")).strip()
+            if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", periodo):
+                return self._json({"error": "Formato de periodo inválido (debe ser YYYY-MM, ej. 2026-11)."}, 400)
+            con = db()
+            count_exists = con.execute("SELECT COUNT(*) c FROM payslips_history WHERE periodo=?", (periodo,)).fetchone()["c"]
+            if count_exists > 0:
+                con.close()
+                return self._json({"error": f"El periodo {periodo} ya existe."}, 409)
+            emps = con.execute("SELECT * FROM employees WHERE activo=1").fetchall()
+            now = datetime.now(timezone.utc).isoformat()
+            rates = get_cargo_rates()
+            for e in emps:
+                tar = e["tarifa"] or rates.get(e["cargo"], 20000)
+                con.execute("""
+                    INSERT INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                    VALUES(?, ?, ?, ?, ?, ?, 'Borrador', NULL, ?)
+                """, (e["id"], periodo, e["h_ord"], e["h_noct"], e["h_dom"], tar, now))
+            con.commit()
+            con.close()
+            return self._json({"ok": True, "periodo": periodo}, 201)
         if u.path == "/api/generate-employees":
             b = self._body()
             try:
@@ -350,6 +500,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/employees/bulk-hours":
             b = self._body()
             ids = b.get("ids", [])
+            periodo = b.get("periodo", "2026-10")
             if not isinstance(ids, list) or not ids:
                 return self._json({"error": "No se seleccionaron empleados."}, 400)
             try:
@@ -365,15 +516,22 @@ class Handler(BaseHTTPRequestHandler):
             q_marks = ",".join("?" for _ in ids)
             cur = con.cursor()
             cur.execute(f"""
-                UPDATE employees
+                UPDATE payslips_history
                 SET h_ord=?, h_noct=?, h_dom=?, updated_at=?
-                WHERE id IN ({q_marks})
-                  AND id IN (SELECT employee_id FROM payslips WHERE estado = 'Borrador')
-            """, [h_ord, h_noct, h_dom, now] + ids)
+                WHERE employee_id IN ({q_marks})
+                  AND periodo = ?
+                  AND estado = 'Borrador'
+            """, [h_ord, h_noct, h_dom, now] + ids + [periodo])
             updated_count = cur.rowcount
+            if periodo == "2026-10":
+                con.execute(f"""
+                    UPDATE employees
+                    SET h_ord=?, h_noct=?, h_dom=?, updated_at=?
+                    WHERE id IN ({q_marks})
+                """, [h_ord, h_noct, h_dom, now] + ids)
             con.commit()
             con.close()
-            return self._json({"ok": True, "updated": updated_count})
+            return self._json({"ok": True, "updated": updated_count, "periodo": periodo})
         if u.path == "/api/employees":
             b = self._body()
             err = validate_emp(b)
@@ -384,38 +542,62 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "Tarifa debe ser > 0."}, 400)
             eid = "emp_" + uuid.uuid4().hex[:8]
             now = datetime.now(timezone.utc).isoformat()
+            cedula = str(b.get("cedula", "")).strip() or f"10{random.randint(10000000, 99999999)}"
+            edad = int(b.get("edad", 28))
+            tipo_sangre = b.get("tipoSangre", "O+")
             con = db()
             try:
-                con.execute("""INSERT INTO employees(id,nombre,email,cargo,tarifa,h_ord,h_noct,h_dom,num_hijos,activo,updated_at)
-                               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-                            (eid, b["nombre"].strip(), b["email"].strip(), b["cargo"], float(tarifa),
+                con.execute("""INSERT INTO employees(id,nombre,cedula,edad,tipo_sangre,email,cargo,tarifa,h_ord,h_noct,h_dom,num_hijos,activo,updated_at)
+                               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            (eid, b["nombre"].strip(), cedula, edad, tipo_sangre, b["email"].strip(), b["cargo"], float(tarifa),
                              float(b.get("hOrd", 0)), float(b.get("hNoct", 0)), float(b.get("hDom", 0)),
                              int(b.get("numHijos", 0)), 1 if b.get("activo", True) else 0, now))
                 con.execute("INSERT INTO payslips(employee_id,estado,updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
+                con.execute("""
+                    INSERT OR IGNORE INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                    VALUES(?, '2026-10', ?, ?, ?, ?, 'Borrador', NULL, ?)
+                """, (eid, float(b.get("hOrd", 0)), float(b.get("hNoct", 0)), float(b.get("hDom", 0)), float(tarifa), now))
                 con.commit()
             except sqlite3.IntegrityError:
                 con.close()
-                return self._json({"error": "Email duplicado."}, 409)
+                return self._json({"error": "Email o Cédula duplicada."}, 409)
             con.close()
             return self._json({"id": eid}, 201)
         if u.path == "/api/seed":
             con = db()
+            con.execute("DELETE FROM payslips_history")
             con.execute("DELETE FROM payslips")
             con.execute("DELETE FROM employees")
             con.commit()
             con.close()
             created = create_fictional_employees(100, "mixto")
+            # Sembrar meses históricos
+            con = db()
+            emps = con.execute("SELECT * FROM employees").fetchall()
+            p_snap = json.dumps(DEFAULT_PARAMS)
+            for past_p in ["2026-09", "2026-08"]:
+                for e in emps:
+                    past_ord = 160.0
+                    past_noct = 10.0 if e["cargo"] == "operario" else 0.0
+                    past_dom = 8.0 if e["cargo"] == "operario" else 0.0
+                    con.execute("""
+                        INSERT OR IGNORE INTO payslips_history(employee_id, periodo, h_ord, h_noct, h_dom, tarifa_aplicada, estado, snap, updated_at)
+                        VALUES(?, ?, ?, ?, ?, ?, 'Enviada', ?, ?)
+                    """, (e["id"], past_p, past_ord, past_noct, past_dom, e["tarifa"], p_snap, f"{past_p}-28T18:00:00+00:00"))
+            con.commit()
+            con.close()
             return self._json({"ok": True, "created": created})
         m = re.match(r"^/api/employees/([^/]+)/estado$", u.path)
         if m:
             eid, b = m.group(1), self._body()
             want = b.get("estado", "")
+            periodo = b.get("periodo", "2026-10")
             con = db()
-            slip = con.execute("SELECT * FROM payslips WHERE employee_id=?", (eid,)).fetchone()
+            slip = con.execute("SELECT * FROM payslips_history WHERE employee_id=? AND periodo=?", (eid, periodo)).fetchone()
             emp = con.execute("SELECT * FROM employees WHERE id=?", (eid,)).fetchone()
             if not slip or not emp:
                 con.close()
-                return self._json({"error": "No existe."}, 404)
+                return self._json({"error": "No existe registro de liquidación para este periodo."}, 404)
             cur = slip["estado"]
             if want not in FLOW or (want != cur and NEXT.get(cur) != want):
                 con.close()
@@ -423,20 +605,22 @@ class Handler(BaseHTTPRequestHandler):
             now = datetime.now(timezone.utc).isoformat()
             p = get_params()
             if want in ("En revisión", "Autorizada"):
-                con.execute("UPDATE payslips SET estado=?, snap=?, updated_at=? WHERE employee_id=?",
-                            (want, json.dumps(p), now, eid))
+                con.execute("UPDATE payslips_history SET estado=?, snap=?, updated_at=? WHERE employee_id=? AND periodo=?",
+                            (want, json.dumps(p), now, eid, periodo))
             else:  # Enviada: mock envío con snapshot
-                e = {"tarifa": emp["tarifa"], "hOrd": emp["h_ord"], "hNoct": emp["h_noct"],
-                     "hDom": emp["h_dom"], "numHijos": emp["num_hijos"]}
+                e = {"tarifa": slip["tarifa_aplicada"], "hOrd": slip["h_ord"], "hNoct": slip["h_noct"],
+                     "hDom": slip["h_dom"], "numHijos": emp["num_hijos"]}
                 snap = json.loads(slip["snap"]) if slip["snap"] else p
                 c = liquidar(e, snap)
-                msg = (f"ENVIADA a {emp['email']} | {emp['nombre']} | base ${c['base']} - ded ${c['total']} "
+                msg = (f"[{periodo}] ENVIADA a {emp['email']} | {emp['nombre']} (CC: {emp['cedula']}) | base ${c['base']} - ded ${c['total']} "
                        f"(salud ${c['dSalud']} pen ${c['dPen']} arl ${c['dArl']}) + sub ${c['sub']} = NETO ${c['neto']}")
-                con.execute("UPDATE payslips SET estado=?, updated_at=? WHERE employee_id=?", (want, now, eid))
+                con.execute("UPDATE payslips_history SET estado=?, updated_at=? WHERE employee_id=? AND periodo=?", (want, now, eid, periodo))
                 con.execute("INSERT INTO send_log(ts,msg) VALUES(?,?)", (now, msg))
+            if periodo == "2026-10":
+                con.execute("UPDATE payslips SET estado=?, updated_at=? WHERE employee_id=?", (want, now, eid))
             con.commit()
             con.close()
-            return self._json({"ok": True, "estado": want})
+            return self._json({"ok": True, "estado": want, "periodo": periodo})
         self.send_error(404)
 
     def do_PUT(self):
@@ -466,6 +650,12 @@ class Handler(BaseHTTPRequestHandler):
                     SET tarifa = ?, updated_at = ?
                     WHERE cargo = ? AND id IN (SELECT employee_id FROM payslips WHERE estado = 'Borrador')
                 """, (val, now, cargo))
+                con.execute("""
+                    UPDATE payslips_history
+                    SET tarifa_aplicada = ?, updated_at = ?
+                    WHERE periodo = '2026-10' AND estado = 'Borrador'
+                      AND employee_id IN (SELECT id FROM employees WHERE cargo = ?)
+                """, (val, now, cargo))
             con.commit()
             con.close()
             return self._json({"ok": True, "rates": get_cargo_rates()})
@@ -487,17 +677,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": err}, 400)
             now = datetime.now(timezone.utc).isoformat()
             try:
-                con.execute("""UPDATE employees SET nombre=COALESCE(?,nombre), email=COALESCE(?,email),
-                               cargo=COALESCE(?,cargo), tarifa=COALESCE(?,tarifa),
+                con.execute("""UPDATE employees SET nombre=COALESCE(?,nombre),
+                               cedula=COALESCE(?,cedula), edad=COALESCE(?,edad), tipo_sangre=COALESCE(?,tipo_sangre),
+                               email=COALESCE(?,email), cargo=COALESCE(?,cargo), tarifa=COALESCE(?,tarifa),
                                h_ord=COALESCE(?,h_ord), h_noct=COALESCE(?,h_noct), h_dom=COALESCE(?,h_dom),
                                num_hijos=COALESCE(?,num_hijos), activo=COALESCE(?,activo), updated_at=? WHERE id=?""",
-                            (b.get("nombre"), b.get("email"), b.get("cargo"), b.get("tarifa"),
+                            (b.get("nombre"), b.get("cedula"), b.get("edad"), b.get("tipoSangre"),
+                             b.get("email"), b.get("cargo"), b.get("tarifa"),
                              b.get("hOrd"), b.get("hNoct"), b.get("hDom"), b.get("numHijos"),
                              b.get("activo"), now, eid))
                 con.commit()
             except sqlite3.IntegrityError:
                 con.close()
-                return self._json({"error": "Email duplicado."}, 409)
+                return self._json({"error": "Email o Cédula duplicada."}, 409)
             con.close()
             return self._json({"ok": True})
         if u.path == "/api/params":
