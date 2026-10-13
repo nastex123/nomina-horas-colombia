@@ -52,13 +52,17 @@ Ejemplo RN-06 verificado `app.py:liquidar`: tarifa 20.000, 150/10/8h, 1 hijo →
 ## 6. API mínima
 | Método | Ruta | Uso |
 |---|---|---|
-| GET | `/`, `/index.html` | UI |
+| GET | `/`, `/index.html` | UI interactiva (Modo Administrador y Modo Mortal) |
 | GET | `/api/health`, `/api/params`, `/api/employees`, `/api/logs` | Lectura + diagnóstico |
-| POST | `/api/employees` | Crear (409 si email duplicado) |
-| PUT | `/api/employees/:id` | Editar solo en Borrador |
-| POST | `/api/employees/:id/estado` | Avanzar flujo lineal |
-| PUT | `/api/params` | Ajustar % y recargos (versiona manual) |
-| POST | `/api/seed` | Cargar ejemplo si vacío |
+| GET | `/api/cargos` | Consultar tarifas base oficiales por cargo |
+| PUT | `/api/cargos` | Actualizar tarifas por cargo (propaga a empleados en Borrador) |
+| POST | `/api/employees` | Crear personal (hereda tarifa del cargo) |
+| PUT | `/api/employees/:id` | Editar empleado (solo en Borrador) |
+| POST | `/api/employees/bulk-hours` | Asignación masiva de horas a lista de IDs seleccionados |
+| POST | `/api/generate-employees` | Generar personal ficticio paramétrico (count + cargo/mixto) |
+| POST | `/api/employees/:id/estado` | Avanzar flujo lineal (`Borrador` → `En revisión` → `Autorizada` → `Enviada`) |
+| PUT | `/api/params` | Parámetros (deducciones de ley fijas: 4% salud, 4% pensión, 0.522% ARL) |
+| POST | `/api/seed` | Reiniciar y poblar con 100 empleados ficticios colombianos |
 
 ## 7. Estructura repo
 ```text

@@ -4,146 +4,843 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
-<title>MVP Liquidación — HTML + Python + SQLite</title>
+<title>Liquidación de Nómina por Horas — Colombia (Ley 2466/2025)</title>
 <style>
-:root{--bg:#f6f7f9;--surface:#fff;--ink:#16283c;--muted:#5b6b7f;--primary:#0f2a44;--primary-hover:#16395c;--border:#d9e0e8;--ok:#1a7f4b;--warn:#9a5b00;--danger:#b3261e;--radius:8px;--shadow:0 1px 2px rgba(15,42,68,.08),0 4px 12px rgba(15,42,68,.08)}
+:root{
+  --bg:#f4f6f9;
+  --surface:#ffffff;
+  --ink:#142334;
+  --muted:#5c6b7e;
+  --primary:#0d2847;
+  --primary-hover:#143b66;
+  --accent:#2463eb;
+  --accent-light:#eaf1fe;
+  --border:#d5dde7;
+  --ok:#12703f;
+  --warn:#a25f00;
+  --danger:#b8261e;
+  --radius:10px;
+  --shadow:0 2px 4px rgba(13,40,71,.06), 0 8px 24px rgba(13,40,71,.06);
+}
 *,*::before,*::after{box-sizing:border-box;min-width:0}
 html,body{max-width:100%;overflow-x:clip}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
-header.site{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);min-height:64px;display:flex;align-items:center;padding:8px 0}
-.wrap{max-width:1100px;margin:0 auto;padding:0 16px;width:100%}
-nav.main{display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap}
-nav.main .brand{white-space:nowrap}
-nav.main .links{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
-nav.main a{text-decoration:none;font-weight:600;padding:8px 10px;border-radius:var(--radius);white-space:nowrap}
-nav.main a:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
-main{padding:24px 0 40px}
+
+/* Header & Navigation */
+header.site{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px;width:100%}
+nav.main{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand-box{display:flex;align-items:center;gap:10px}
+.brand-logo{background:var(--primary);color:#fff;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.brand-title{font-size:16px;font-weight:800;color:var(--primary);line-height:1.2}
+.brand-sub{font-size:12px;color:var(--muted)}
+
+/* Mode Switcher Toggle */
+.mode-toggle{display:inline-flex;background:#e9edf2;padding:4px;border-radius:30px;border:1px solid var(--border);gap:4px}
+.mode-btn{border:none;background:transparent;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all 150ms ease;display:inline-flex;align-items:center;gap:6px}
+.mode-btn:hover{color:var(--ink)}
+.mode-btn.active{background:var(--primary);color:#fff;box-shadow:0 2px 6px rgba(13,40,71,.2)}
+
+/* Layout & Typography */
+main{padding:20px 0 40px}
+h1{font-size:clamp(20px,3.5vw,26px);margin:0 0 6px;color:var(--primary);font-weight:800}
+h2{font-size:17px;margin:0 0 12px;color:var(--primary);font-weight:700;display:flex;align-items:center;justify-content:space-between}
+p.desc{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:85ch}
+.banner{background:#edf3fc;border:1px solid #c7daf7;border-left:4px solid var(--accent);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;font-size:13px;color:#18365d;display:flex;align-items:center;gap:10px}
+
+/* Grid & Cards */
 .grid{display:grid;gap:16px;grid-template-columns:1fr;min-width:0}
-@media(min-width:900px){.grid-2{grid-template-columns:380px minmax(0,1fr)}}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0;max-width:100%;overflow:hidden}
-h1{font-size:clamp(20px,4vw,26px);margin:8px 0 4px;overflow-wrap:break-word}
-h2{font-size:18px;margin:0 0 12px}
-.muted{color:var(--muted);font-size:14px;overflow-wrap:break-word}
-p.muted{max-width:70ch}
-code{overflow-wrap:break-word}
-label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
-input,select{width:100%;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:#fff}
-.row3{display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
-@media(min-width:560px){.row3{grid-template-columns:1fr 1fr 1fr}}
-.pct-wrap{position:relative}
-.pct-wrap input{padding-right:30px}
-.pct-wrap::after{content:"%";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none}
-.factor-hint{font-size:12px;color:var(--muted)}
-.params-total{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;background:#eef2f6;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-weight:700;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius);border:1px solid transparent;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;transition:transform 150ms ease-out,background 150ms ease-out,opacity 150ms;max-width:100%;overflow-wrap:break-word}
+@media(min-width:960px){
+  .grid-admin{grid-template-columns:370px minmax(0,1fr)}
+  .grid-rates{grid-template-columns:repeat(3,1fr)}
+}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;min-width:0;position:relative}
+.card-highlight{border-color:#b9d2fb;background:#fafcff}
+
+/* Forms & Inputs */
+label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;max-width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;transition:border-color 150ms}
+input:focus,select:focus{border-color:var(--accent);outline:2px solid var(--accent-light)}
+.row-inputs{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:540px){.row-inputs{grid-template-columns:repeat(3,1fr)}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;transition:all 150ms ease;text-decoration:none}
 .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px)}
-.btn-secondary{background:#eaf0f6;color:var(--primary);border-color:var(--border)}.btn-secondary:hover{transform:translateY(-1px)}
-.btn-ghost{background:transparent;color:var(--primary)}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-sm{padding:6px 10px;font-size:13px}
-.actions{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
-.table-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
-th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border);vertical-align:top;overflow-wrap:anywhere;word-break:break-word}
-th{background:#eef2f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-td .muted{overflow-wrap:anywhere}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:#f1f4f8;white-space:nowrap}
-.badge.ok{background:#e6f4ec;border-color:#bfe3cd;color:var(--ok)}.badge.warn{background:#fff4dd;border-color:#f0d48a;color:var(--warn)}
-.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;min-width:0}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:#1a52c7;transform:translateY(-1px)}
+.btn-secondary{background:#eaf0f7;color:var(--primary);border-color:var(--border)}.btn-secondary:hover{background:#dfe7f1;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--primary);border-color:transparent}.btn-ghost:hover{background:#eef3f9}
+.btn-sm{padding:5px 9px;font-size:12px;border-radius:6px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#f1f4f8;white-space:nowrap}
+.badge.ok{background:#e6f6ee;border-color:#b6e4cc;color:var(--ok)}
+.badge.warn{background:#fff6e3;border-color:#fae09e;color:var(--warn)}
+.badge.info{background:#eef4ff;border-color:#c4dbfe;color:#1d4ed8}
+.badge-cargo{text-transform:capitalize}
+
+/* Bulk Hours Toolbar */
+.bulk-bar{background:#0e2947;color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:0 4px 14px rgba(14,41,71,.2)}
+.bulk-bar-info{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
+.bulk-bar-inputs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bulk-bar-inputs label{color:#adc6e5;margin:0;font-size:11px}
+.bulk-bar-inputs input{width:80px;padding:6px 8px;font-size:13px;border-radius:6px;border:1px solid #32557c;background:#183b63;color:#fff}
+.bulk-bar-inputs input:focus{background:#fff;color:#000}
+
+/* Filter Toolbar */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.filter-search{flex:1 1 240px;position:relative}
+.filter-search input{padding-left:32px}
+.filter-search::before{content:"🔍";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.6}
+.filter-select{flex:0 0 170px}
+.filter-count{font-size:13px;color:var(--muted);font-weight:600;margin-left:auto}
+
+/* Table */
+.table-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:780px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{background:#f1f5f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;user-select:none}
+tbody tr:hover{background:#f9fbfe}
+tbody tr.selected{background:#eff5ff}
+.th-check,.td-check{width:36px;text-align:center;padding:10px 6px}
+input[type="checkbox"]{width:17px;height:17px;cursor:pointer;accent-color:var(--accent)}
+
+/* Financial Calculation Display */
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
 .kv strong{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-footer.site{background:var(--surface);border-top:1px solid var(--border);padding:24px 0;margin-top:24px}
-.foot-grid{display:grid;gap:16px;grid-template-columns:1fr 1fr}
-@media(min-width:768px){.foot-grid{grid-template-columns:repeat(4,1fr)}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-pre.log{background:#0f1e30;color:#d7e3f0;padding:12px;border-radius:var(--radius);max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
-/* Móvil: tabla → cards apiladas, nada se sale */
-@media(max-width:700px){
-  .wrap{padding:0 12px}
-  nav.main .subtitle{display:none}
-  table{min-width:0}
-  table thead{display:none}
-  table,table tbody,table tr,table td{display:block;width:100%;max-width:100%}
-  table tr{border-bottom:2px solid var(--border);padding:6px 0}
-  table td{border-bottom:1px dashed var(--border);padding:8px 10px}
-  table td:last-child{border-bottom:0}
-  table td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
-  .kv{grid-template-columns:1fr auto}
-  .btn{flex:1 1 auto}
+.net-val{color:var(--ok);font-weight:900;font-size:13px}
+
+/* Legal Parameters Badges Card */
+.legal-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-top:10px}
+.legal-pill{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center}
+.legal-pill-title{font-size:11px;color:var(--muted);font-weight:700}
+.legal-pill-val{font-size:16px;font-weight:900;color:var(--primary);margin:2px 0}
+.legal-pill-sub{font-size:10px;color:var(--ok);font-weight:700}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(10,25,44,.6);backdrop-filter:blur(3px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius);max-width:480px;width:100%;padding:24px;box-shadow:0 12px 36px rgba(0,0,0,.25);position:relative}
+.modal-title{font-size:18px;font-weight:800;color:var(--primary);margin:0 0 8px}
+.modal-desc{font-size:13px;color:var(--muted);margin:0 0 16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+
+/* Log */
+pre.log{background:#0e1e30;color:#d4e3f3;padding:12px;border-radius:8px;max-height:160px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:0}
+
+/* Responsiveness */
+@media(max-width:768px){
+  .wrap{padding:0 10px}
+  .bulk-bar{flex-direction:column;align-items:stretch}
+  .bulk-bar-inputs{justify-content:space-between}
+  .filter-bar{flex-direction:column;align-items:stretch}
+  .filter-select{flex:1 1 100%}
+  .filter-count{margin-left:0}
 }
 </style>
 </head>
 <body>
-<header class="site"><div class="wrap"><nav class="main" aria-label="Principal"><strong class="brand">Liquidación MVP</strong><span class="muted subtitle">HTML + Python + SQLite · v1.3.1</span><div class="links"><a href="#empleados">Empleados</a><a href="#liquidacion">Autorización</a><a href="#envios">Envíos</a><a href="#params">Parámetros</a></div></nav></div></header>
+
+<header class="site">
+  <div class="wrap">
+    <nav class="main" aria-label="Navegación Principal">
+      <div class="brand-box">
+        <div class="brand-logo">N</div>
+        <div>
+          <div class="brand-title">Liquidación Nómina Colombia</div>
+          <div class="brand-sub">Ley 2466/2025 · Base IBC · Horas y Recargos</div>
+        </div>
+      </div>
+      
+      <!-- Selector de Modo: Administrador vs Mortal -->
+      <div class="mode-toggle" role="radiogroup" aria-label="Seleccionar modo de vista">
+        <button id="btnModeMortal" class="mode-btn active" type="button" role="radio" aria-checked="true" title="Modo Operativo: Asignar horas y ver cálculo">
+          👤 Modo Mortal (Operativo)
+        </button>
+        <button id="btnModeAdmin" class="mode-btn" type="button" role="radio" aria-checked="false" title="Modo Administrador: Agregar personal, tarifas y autorizaciones">
+          ⚙️ Modo Administrador
+        </button>
+      </div>
+    </nav>
+  </div>
+</header>
+
 <main class="wrap">
-<h1>Autorización y liquidación por horas</h1>
-<p class="muted">Base IBC (CO): recargos nocturnos/dominicales y extras <strong>sí son salario</strong> y suman a la base. Subsidio hijos y aux. transporte <strong>no</strong> entran a la base. Deducciones solo 3 sobre base: salud + pensión + ARL (editables en % abajo). Neto = base − ded + subsidio. Recargos: ×1.0 / ×1.35 (7pm–6am) / ×1.90 dom. Persistencia Python + SQLite.</p>
-<div class="grid grid-2">
-<section class="card" id="empleados" aria-label="Formulario"><h2 id="formTitle">Nuevo empleado</h2>
-<form id="frm"><input type="hidden" id="f_id">
-<label for="f_nombre">Nombre</label><input id="f_nombre" required maxlength="120" autocomplete="name">
-<label for="f_email">Email (destino envío)</label><input id="f_email" type="email" required maxlength="160" autocomplete="email" style="overflow-wrap:anywhere">
-<div class="row3"><div><label for="f_cargo">Cargo</label><select id="f_cargo"><option value="gerente">gerente</option><option value="administrativo" selected>administrativo</option><option value="operario">operario</option></select></div>
-<div><label for="f_hijos">Hijos</label><input id="f_hijos" type="number" min="0" step="1" value="0" required></div>
-<div><label for="f_activo">Activo</label><select id="f_activo"><option value="1">sí</option><option value="0">no</option></select></div></div>
-<label for="f_tarifa">Tarifa hora ordinaria COP (la ingresas tú)</label><input id="f_tarifa" type="number" min="1" step="1" value="20000" required>
-<div class="row3"><div><label for="f_ord">H. ord</label><input id="f_ord" type="number" min="0" step="0.5" value="150"></div>
-<div><label for="f_noct">H. noct</label><input id="f_noct" type="number" min="0" step="0.5" value="10"></div>
-<div><label for="f_dom">H. dom/fest</label><input id="f_dom" type="number" min="0" step="0.5" value="0"></div></div>
-<div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn btn-ghost" type="button" id="btnClear">Limpiar</button></div>
-<p class="muted" id="formErr" role="alert"></p></form></section>
-<section class="card" id="liquidacion"><h2>Empleados y autorización</h2>
-<div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Horas / tarifa</th><th>Cálculo (base IBC)</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tbody"></tbody></table></div>
-<p class="muted">Flujo: Borrador → En revisión → Autorizada → Enviada. Backend: <code>python3 app.py --port 8000 --force</code>.</p></section>
+  <!-- Banner explicativo dinámico según el modo -->
+  <div class="banner" id="modeBanner">
+    <span id="bannerIcon" style="font-size:20px">👤</span>
+    <span id="bannerText"><strong>Modo Mortal (Operativo):</strong> Selecciona 1 o más empleados mediante las casillas de verificación o filtros para asignar horas. Puedes visualizar el cálculo contable y pasar el estado a <em>En revisión</em>.</span>
+  </div>
+
+  <!-- SECCIÓN ADMINISTRADOR: Configuración, Tarifas, Generador y Registro -->
+  <div id="adminPanel" style="display:none; margin-bottom:20px">
+    <div class="grid grid-admin">
+      <!-- Formulario para agregar personal -->
+      <section class="card" aria-label="Formulario Nuevo Empleado">
+        <h2 id="formTitle">Agregar Personal</h2>
+        <form id="frmEmp">
+          <input type="hidden" id="f_id">
+          <div>
+            <label for="f_nombre">Nombre Completo</label>
+            <input id="f_nombre" required maxlength="120" placeholder="Ej. Carlos Mendoza">
+          </div>
+          <div>
+            <label for="f_email">Email Corporativo</label>
+            <input id="f_email" type="email" required maxlength="160" placeholder="carlos.mendoza@empresa.co">
+          </div>
+          <div class="row-inputs">
+            <div>
+              <label for="f_cargo">Cargo</label>
+              <select id="f_cargo">
+                <option value="operario" selected>Operario</option>
+                <option value="administrativo">Administrativo</option>
+                <option value="gerente">Gerente</option>
+              </select>
+            </div>
+            <div>
+              <label for="f_hijos">Hijos</label>
+              <input id="f_hijos" type="number" min="0" step="1" value="0" required>
+            </div>
+            <div>
+              <label for="f_activo">Estado</label>
+              <select id="f_activo">
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="f_tarifa">Tarifa Hora (COP) <span class="badge info" style="font-size:10px">Opcional: usa la del cargo</span></label>
+            <input id="f_tarifa" type="number" min="0" step="100" placeholder="Automática según cargo">
+          </div>
+          <div class="row-inputs">
+            <div><label for="f_ord">H. Ord</label><input id="f_ord" type="number" min="0" step="0.5" value="150"></div>
+            <div><label for="f_noct">H. Noct</label><input id="f_noct" type="number" min="0" step="0.5" value="10"></div>
+            <div><label for="f_dom">H. Dom</label><input id="f_dom" type="number" min="0" step="0.5" value="8"></div>
+          </div>
+          <div class="actions" style="margin-top:14px">
+            <button class="btn btn-primary" type="submit" id="btnSaveEmp">Guardar Empleado</button>
+            <button class="btn btn-ghost" type="button" id="btnClearEmp">Limpiar</button>
+          </div>
+          <p id="formErr" class="muted" style="color:var(--danger);font-size:12px;margin:8px 0 0" role="alert"></p>
+        </form>
+      </section>
+
+      <!-- Panel de Tarifas por Cargo y Generador Masivo -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Tarifas por cargo -->
+        <section class="card card-highlight">
+          <h2>
+            <span>Tarifas Oficiales por Cargo</span>
+            <span class="badge info">Propagación Automática</span>
+          </h2>
+          <p class="muted" style="font-size:12px;margin:0 0 10px">
+            Al modificar la tarifa de un cargo, se actualizan automáticamente las liquidaciones en estado <strong>Borrador</strong> asociadas a ese cargo.
+          </p>
+          <div class="grid grid-rates">
+            <div>
+              <label for="rate_gerente">Gerente ($/h)</label>
+              <input id="rate_gerente" type="number" step="500" min="1000">
+            </div>
+            <div>
+              <label for="rate_admin">Administrativo ($/h)</label>
+              <input id="rate_admin" type="number" step="500" min="1000">
+            </div>
+            <div>
+              <label for="rate_operario">Operario ($/h)</label>
+              <input id="rate_operario" type="number" step="500" min="1000">
+            </div>
+          </div>
+          <div class="actions" style="margin-top:12px">
+            <button class="btn btn-accent btn-sm" id="btnSaveRates" type="button">💾 Actualizar Tarifas por Cargo</button>
+            <span id="rateMsg" style="font-size:12px;font-weight:700"></span>
+          </div>
+        </section>
+
+        <!-- Deducciones de ley fijas y Generador Ficticio -->
+        <section class="card">
+          <h2>
+            <span>Deducciones de Ley Colombiana</span>
+            <span class="badge ok">Fijas por Normativa</span>
+          </h2>
+          <div class="legal-grid">
+            <div class="legal-pill">
+              <div class="legal-pill-title">Salud</div>
+              <div class="legal-pill-val">4.0%</div>
+              <div class="legal-pill-sub">Ley 100/1993</div>
+            </div>
+            <div class="legal-pill">
+              <div class="legal-pill-title">Pensión</div>
+              <div class="legal-pill-val">4.0%</div>
+              <div class="legal-pill-sub">Ley 100/1993</div>
+            </div>
+            <div class="legal-pill">
+              <div class="legal-pill-title">ARL (Riesgo I)</div>
+              <div class="legal-pill-val">0.522%</div>
+              <div class="legal-pill-sub">Norma CO</div>
+            </div>
+            <div class="legal-pill">
+              <div class="legal-pill-title">Rec. Nocturno</div>
+              <div class="legal-pill-val">×1.35</div>
+              <div class="legal-pill-sub">7pm – 6am</div>
+            </div>
+            <div class="legal-pill">
+              <div class="legal-pill-title">Rec. Dominical</div>
+              <div class="legal-pill-val">×1.90</div>
+              <div class="legal-pill-sub">Ley 2466/2025</div>
+            </div>
+          </div>
+          <div class="actions" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+            <button class="btn btn-secondary btn-sm" id="btnOpenGenModal" type="button">✨ Generar Empleados Ficticios...</button>
+            <button class="btn btn-ghost btn-sm" id="btnResetSeed" type="button" title="Restablecer base a 100 empleados estándar">🔄 Reiniciar a 100 Ficticios</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRA DE ASIGNACIÓN MASIVA DE HORAS (Para Modo Mortal y Admin) -->
+  <div class="bulk-bar" id="bulkBar">
+    <div class="bulk-bar-info">
+      <span>⚡ Asignación Masiva de Horas</span>
+      <span class="badge warn" id="selectedCountBadge">0 empleados seleccionados</span>
+    </div>
+    <div class="bulk-bar-inputs">
+      <div>
+        <label for="bulk_ord">H. Ord:</label>
+        <input id="bulk_ord" type="number" step="0.5" min="0" value="160">
+      </div>
+      <div>
+        <label for="bulk_noct">H. Noct:</label>
+        <input id="bulk_noct" type="number" step="0.5" min="0" value="10">
+      </div>
+      <div>
+        <label for="bulk_dom">H. Dom:</label>
+        <input id="bulk_dom" type="number" step="0.5" min="0" value="8">
+      </div>
+      <button class="btn btn-accent btn-sm" id="btnApplyBulk" type="button">⚡ Aplicar a seleccionados</button>
+      <button class="btn btn-secondary btn-sm" id="btnClearSelection" type="button" style="background:#204368;color:#fff;border-color:#355c88">Deseleccionar</button>
+    </div>
+  </div>
+
+  <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+  <div class="filter-bar">
+    <div class="filter-search">
+      <input type="text" id="filterText" placeholder="Buscar por nombre o correo corporativo..." autocomplete="off">
+    </div>
+    <div class="filter-select">
+      <select id="filterCargo" aria-label="Filtrar por cargo">
+        <option value="">Todos los cargos</option>
+        <option value="operario">Solo Operarios</option>
+        <option value="administrativo">Solo Administrativos</option>
+        <option value="gerente">Solo Gerentes</option>
+      </select>
+    </div>
+    <div class="filter-select">
+      <select id="filterEstado" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="Borrador">Borrador</option>
+        <option value="En revisión">En revisión</option>
+        <option value="Autorizada">Autorizada</option>
+        <option value="Enviada">Enviada</option>
+      </select>
+    </div>
+    <div class="filter-count" id="filterCountDisplay">Cargando empleados...</div>
+  </div>
+
+  <!-- TABLA PRINCIPAL DE EMPLEADOS Y LIQUIDACIÓN -->
+  <section class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="th-check"><input type="checkbox" id="chkSelectAll" title="Seleccionar todos los visibles"></th>
+            <th>Empleado</th>
+            <th>Horas Registradas</th>
+            <th>Tarifa Hora</th>
+            <th>Cálculo Nómina (Base IBC)</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="7" style="text-align:center;padding:24px">Cargando base de datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PANEL DE LOG DE ENVÍOS (Solo Admin) -->
+  <div id="adminLogPanel" style="display:none; margin-top:20px">
+    <section class="card">
+      <h2><span>Historial de Envíos (SQLite send_log)</span><span class="badge info">Auditoría</span></h2>
+      <pre class="log" id="log" aria-live="polite">Sin envíos registrados.</pre>
+    </section>
+  </div>
+</main>
+
+<!-- MODAL: Generador de Empleados Ficticios -->
+<div class="modal-overlay" id="genModal">
+  <div class="modal">
+    <h3 class="modal-title">✨ Generar Personal Ficticio</h3>
+    <p class="modal-desc">Crea automáticamente empleados con nombres colombianos, cargos, hijos y horas realistas directamente en la base de datos.</p>
+    <form id="frmGen">
+      <div style="margin-bottom:12px">
+        <label for="gen_count">¿Cuántos empleados deseas generar?</label>
+        <input id="gen_count" type="number" min="1" max="200" value="15" required>
+      </div>
+      <div style="margin-bottom:16px">
+        <label for="gen_cargo">Distribución de Cargo</label>
+        <select id="gen_cargo">
+          <option value="mixto" selected>Mixto (Proporción: 10% Gerentes, 30% Admin, 60% Operarios)</option>
+          <option value="operario">Solo Operarios</option>
+          <option value="administrativo">Solo Administrativos</option>
+          <option value="gerente">Solo Gerentes</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" id="btnCloseGenModal">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="btnSubmitGen">Generar y Agregar</button>
+      </div>
+    </form>
+  </div>
 </div>
-<div class="grid grid-2" style="margin-top:16px">
-<section class="card" id="params"><h2>Parámetros (3 ded en %)</h2>
-<div class="row3"><div><label for="p_salud">Salud %</label><div class="pct-wrap"><input id="p_salud" type="number" step="0.001" min="0" max="100" inputmode="decimal"></div></div>
-<div><label for="p_pension">Pensión %</label><div class="pct-wrap"><input id="p_pension" type="number" step="0.001" min="0" max="100" inputmode="decimal"></div></div>
-<div><label for="p_arl">ARL %</label><div class="pct-wrap"><input id="p_arl" type="number" step="0.0001" min="0" max="100" inputmode="decimal"></div></div></div>
-<div class="row3"><div><label for="p_noct">Rec noct (factor)</label><input id="p_noct" type="number" step="0.01" min="1"><span class="factor-hint">1.35 = +35%</span></div>
-<div><label for="p_dom">Rec dom (factor)</label><input id="p_dom" type="number" step="0.01" min="1"><span class="factor-hint">1.90 = +90%</span></div>
-<div><label>Versión</label><span class="muted" id="p_ver"></span></div></div>
-<div class="params-total"><span>Total ded: <span id="p_total">—</span></span><span class="muted" id="paramsErr" role="alert"></span></div>
-<div class="actions" style="margin-top:12px"><button class="btn btn-secondary btn-sm" id="btnParams">Guardar params</button><button class="btn btn-ghost btn-sm" id="btnSeed">Cargar ejemplo</button></div></section>
-<section class="card" id="envios"><h2>Envíos (SQLite log)</h2><pre class="log" id="log" aria-live="polite">Sin envíos.</pre></section>
-</div></main>
-<footer class="site"><div class="wrap foot-grid"><div><strong>Producto</strong><br><span class="muted">MVP liquidación base IBC</span></div><div><strong>Recursos</strong><br><span class="muted">SRS · TDD · app.py</span></div><div><strong>Legal</strong><br><span class="muted">Ley 2466/2025 · IBC con recargos</span></div><div><strong>Versión</strong><br><span class="muted">v1.3.1 · SQLite + %</span></div></div></footer>
+
+<footer class="site" style="background:#fff;border-top:1px solid var(--border);padding:20px 0;margin-top:30px">
+  <div class="wrap" style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:10px">
+    <div><strong>Sistema de Nómina SENA</strong> · Python 3 stdlib + SQLite3 (Cero dependencias)</div>
+    <div>Fórmula CO: Base IBC = Horas con Recargos | Deducciones de Ley: Salud 4%, Pensión 4%, ARL 0.522%</div>
+  </div>
+</footer>
+
 <script>
-const $=id=>document.getElementById(id);
-const fmt=n=>new Intl.NumberFormat('es-CO',{maximumFractionDigits:0}).format(Math.round(n));
-const fmtPct=n=>{const v=Math.round(Number(n)*1000)/1000;return (Number.isFinite(v)?v:0).toString().replace('.',',');};
-let editing=null;
-async function api(m,u,b){const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function updateTotal(){const s=parseFloat($('p_salud').value)||0;const p=parseFloat($('p_pension').value)||0;const a=parseFloat($('p_arl').value)||0;const t=Math.round((s+p+a)*1000)/1000;$('p_total').textContent=fmtPct(t)+' %';}
-['p_salud','p_pension','p_arl'].forEach(id=>$(id).addEventListener('input',updateTotal));
-async function refresh(){const emps=await api('GET','/api/employees');const logs=await api('GET','/api/logs');const p=await api('GET','/api/params');
-$('p_salud').value=Math.round(p.salud*100*1000)/1000;$('p_pension').value=Math.round(p.pension*100*1000)/1000;$('p_arl').value=Math.round(p.arl*100*10000)/10000;$('p_noct').value=p.recNoct;$('p_dom').value=p.recDom;$('p_ver').textContent=p.version;updateTotal();
-const tb=$('tbody');tb.innerHTML='';
-for(const e of emps){const c=e.calc;const tr=document.createElement('tr');
-tr.innerHTML=`<td data-label="Empleado"><strong>${esc(e.nombre)}</strong><br><span class="muted">${esc(e.cargo)} · ${e.activo?'activo':'inactivo'}<br>${esc(e.email)}<br>${e.numHijos} hijo(s)</span></td><td data-label="Horas / tarifa" class="muted">ord ${e.hOrd} · noct ${e.hNoct} · dom ${e.hDom}<br>tarifa $${fmt(e.tarifa)}</td><td data-label="Cálculo (base IBC)"><div class="kv"><span>Base IBC</span><strong>$${fmt(c.base)}</strong><span>Subsidio (fuera base)</span><strong>$${fmt(c.sub)}</strong><span>Ded 3</span><strong>$${fmt(c.total)}</strong><span>Neto = base−ded+sub</span><strong>$${fmt(c.neto)}</strong></div><span class="muted">salud $${fmt(c.dSalud)} · pen $${fmt(c.dPen)} · arl $${fmt(c.dArl)}</span></td><td data-label="Estado"><span class="badge ${e.estado==='Autorizada'||e.estado==='Enviada'?'ok':e.estado==='En revisión'?'warn':''}">${esc(e.estado)}</span></td><td data-label="Acciones"></td>`;
-const td=tr.lastElementChild;const box=document.createElement('div');box.className='actions';
-const mk=(t,cls,fn,dis)=>{const b=document.createElement('button');b.className='btn '+cls+' btn-sm';b.textContent=t;b.disabled=!!dis;b.onclick=fn;box.appendChild(b);};
-const locked=['En revisión','Autorizada','Enviada'].includes(e.estado);
-mk('Editar','btn-secondary',()=>onEdit(e),locked);
-mk('A revisión','btn-secondary',()=>setEstado(e,'En revisión'),e.estado!=='Borrador');
-mk('Autorizar','btn-primary',()=>setEstado(e,'Autorizada'),e.estado!=='En revisión');
-mk('Enviar','btn-primary',()=>setEstado(e,'Enviada'),e.estado!=='Autorizada');
-td.appendChild(box);tb.appendChild(tr);}
-$('log').textContent=logs.length?logs.slice(-30).join('\n'):'Sin envíos.';}
-function onEdit(e){editing=e.id;$('f_id').value=e.id;$('f_nombre').value=e.nombre;$('f_email').value=e.email;$('f_cargo').value=e.cargo;$('f_hijos').value=e.numHijos;$('f_tarifa').value=e.tarifa;$('f_ord').value=e.hOrd;$('f_noct').value=e.hNoct;$('f_dom').value=e.hDom;$('f_activo').value=e.activo?'1':'0';$('formTitle').textContent='Editar '+e.nombre;window.scrollTo({top:0,behavior:'smooth'});}
-function resetForm(){$('frm').reset();editing=null;$('f_id').value='';$('formTitle').textContent='Nuevo empleado';$('formErr').textContent='';$('f_hijos').value=0;$('f_tarifa').value=20000;$('f_ord').value=150;$('f_noct').value=10;$('f_dom').value=0;}
-$('btnClear').onclick=resetForm;
-$('frm').onsubmit=async ev=>{ev.preventDefault();$('formErr').textContent='';
-const b={nombre:$('f_nombre').value.trim(),email:$('f_email').value.trim(),cargo:$('f_cargo').value,numHijos:parseInt($('f_hijos').value,10),tarifa:parseFloat($('f_tarifa').value),hOrd:parseFloat($('f_ord').value)||0,hNoct:parseFloat($('f_noct').value)||0,hDom:parseFloat($('f_dom').value)||0,activo:$('f_activo').value==='1'};
-try{if(editing){await api('PUT','/api/employees/'+editing,b);}else{await api('POST','/api/employees',b);}resetForm();await refresh();}catch(e){$('formErr').textContent=e.message;}};
-async function setEstado(e,est){try{await api('POST',`/api/employees/${e.id}/estado`,{estado:est});await refresh();}catch(err){alert(err.message);}}
-$('btnParams').onclick=async()=>{try{$('paramsErr').textContent='';const s=parseFloat($('p_salud').value);const pe=parseFloat($('p_pension').value);const a=parseFloat($('p_arl').value);const rn=parseFloat($('p_noct').value);const rd=parseFloat($('p_dom').value);
-if([s,pe,a,rn,rd].some(v=>!Number.isFinite(v))){$('paramsErr').textContent='Revisa números.';return;}
-if(s<0||s>100||pe<0||pe>100||a<0||a>100){$('paramsErr').textContent='Ded 0–100%.';return;}
-if(rn<1||rd<1){$('paramsErr').textContent='Recargos ≥ 1.';return;}
-await api('PUT','/api/params',{salud:s/100,pension:pe/100,arl:a/100,recNoct:rn,recDom:rd});await refresh();}catch(e){$('paramsErr').textContent=e.message;}};
-$('btnSeed').onclick=async()=>{await api('POST','/api/seed');await refresh();};
-refresh().catch(()=>{$('tbody').innerHTML='<tr><td colspan="5">Inicia backend: <code>python3 app.py</code> y abre http://localhost:8000</td></tr>';});
+const $ = id => document.getElementById(id);
+const fmt = n => new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Math.round(n || 0));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Estado global de la aplicación
+let allEmployees = [];
+let selectedIds = new Set();
+let currentMode = localStorage.getItem('sena_nomina_mode') || 'mortal'; // 'mortal' o 'admin'
+let editingEmpId = null;
+
+// Helper API Fetch
+async function api(method, url, body) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+// Control del Switch de Modo (Administrador vs Mortal)
+function setMode(mode) {
+  currentMode = mode;
+  localStorage.setItem('sena_nomina_mode', mode);
+
+  if (mode === 'admin') {
+    $('btnModeAdmin').classList.add('active');
+    $('btnModeAdmin').setAttribute('aria-checked', 'true');
+    $('btnModeMortal').classList.remove('active');
+    $('btnModeMortal').setAttribute('aria-checked', 'false');
+
+    $('adminPanel').style.display = 'block';
+    $('adminLogPanel').style.display = 'block';
+
+    $('bannerIcon').textContent = '⚙️';
+    $('bannerText').innerHTML = '<strong>Modo Administrador:</strong> Puedes agregar personal, modificar las tarifas oficiales por cargo (las cuales propagan automáticamente a las liquidaciones en Borrador), generar personal ficticio y autorizar o enviar la nómina.';
+  } else {
+    $('btnModeMortal').classList.add('active');
+    $('btnModeMortal').setAttribute('aria-checked', 'true');
+    $('btnModeAdmin').classList.remove('active');
+    $('btnModeAdmin').setAttribute('aria-checked', 'false');
+
+    $('adminPanel').style.display = 'none';
+    $('adminLogPanel').style.display = 'none';
+
+    $('bannerIcon').textContent = '👤';
+    $('bannerText').innerHTML = '<strong>Modo Mortal (Operativo):</strong> Selecciona 1 o más empleados mediante las casillas de verificación o filtros para asignar horas. Puedes visualizar el cálculo contable completo y pasar el estado a <em>En revisión</em>.';
+  }
+
+  renderTable();
+}
+
+$('btnModeMortal').onclick = () => setMode('mortal');
+$('btnModeAdmin').onclick = () => setMode('admin');
+
+// Carga y actualización de datos
+async function refresh() {
+  try {
+    const [emps, logs, cargos] = await Promise.all([
+      api('GET', '/api/employees'),
+      api('GET', '/api/logs'),
+      api('GET', '/api/cargos')
+    ]);
+
+    allEmployees = emps;
+
+    // Actualizar inputs de tarifas por cargo si existen
+    if (cargos) {
+      if ($('rate_gerente') && !document.activeElement.id?.includes('rate_')) $('rate_gerente').value = cargos.gerente || 35000;
+      if ($('rate_admin') && !document.activeElement.id?.includes('rate_')) $('rate_admin').value = cargos.administrativo || 20000;
+      if ($('rate_operario') && !document.activeElement.id?.includes('rate_')) $('rate_operario').value = cargos.operario || 15000;
+    }
+
+    $('log').textContent = logs.length ? logs.slice(-30).join('\n') : 'Sin envíos registrados.';
+    renderTable();
+  } catch (err) {
+    $('tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;padding:20px">Error al conectar con el servidor: ${err.message}</td></tr>`;
+  }
+}
+
+// Renderizado de tabla con filtros y selección
+function getFilteredEmployees() {
+  const q = $('filterText').value.trim().toLowerCase();
+  const c = $('filterCargo').value;
+  const s = $('filterEstado').value;
+
+  return allEmployees.filter(e => {
+    if (c && e.cargo !== c) return false;
+    if (s && e.estado !== s) return false;
+    if (q) {
+      const matchNom = e.nombre.toLowerCase().includes(q);
+      const matchEmail = e.email.toLowerCase().includes(q);
+      if (!matchNom && !matchEmail) return false;
+    }
+    return true;
+  });
+}
+
+function updateBulkBadge() {
+  const count = selectedIds.size;
+  $('selectedCountBadge').textContent = `${count} empleado${count === 1 ? '' : 's'} seleccionado${count === 1 ? '' : 's'}`;
+  $('btnApplyBulk').disabled = count === 0;
+}
+
+function renderTable() {
+  const filtered = getFilteredEmployees();
+  const tb = $('tbody');
+  tb.innerHTML = '';
+
+  $('filterCountDisplay').textContent = `Mostrando ${filtered.length} de ${allEmployees.length} empleados`;
+
+  // Comprobar estado del checkbox "Seleccionar todos"
+  const allFilteredSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
+  $('chkSelectAll').checked = allFilteredSelected;
+
+  if (filtered.length === 0) {
+    tb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">No se encontraron empleados con los filtros aplicados.</td></tr>`;
+    updateBulkBadge();
+    return;
+  }
+
+  for (const e of filtered) {
+    const c = e.calc || {};
+    const tr = document.createElement('tr');
+    const isSel = selectedIds.has(e.id);
+    if (isSel) tr.classList.add('selected');
+
+    // Badge de cargo
+    const cargoBadgeClass = e.cargo === 'gerente' ? 'ok' : (e.cargo === 'administrativo' ? 'info' : 'warn');
+
+    // Formato de horas
+    const horasStr = `Ord: <strong>${e.hOrd}</strong>h | Noct: <strong>${e.hNoct}</strong>h | Dom: <strong>${e.hDom}</strong>h`;
+
+    // Botones según el modo
+    let actionButtons = '';
+    const locked = ['En revisión', 'Autorizada', 'Enviada'].includes(e.estado);
+
+    if (currentMode === 'admin') {
+      actionButtons = `
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" onclick="editEmp('${e.id}')" ${locked ? 'disabled' : ''}>Editar</button>
+          <button class="btn btn-secondary btn-sm" onclick="cambiarEstado('${e.id}', 'En revisión')" ${e.estado !== 'Borrador' ? 'disabled' : ''}>A revisión</button>
+          <button class="btn btn-primary btn-sm" onclick="cambiarEstado('${e.id}', 'Autorizada')" ${e.estado !== 'En revisión' ? 'disabled' : ''}>Autorizar</button>
+          <button class="btn btn-accent btn-sm" onclick="cambiarEstado('${e.id}', 'Enviada')" ${e.estado !== 'Autorizada' ? 'disabled' : ''}>Enviar</button>
+        </div>
+      `;
+    } else {
+      // Modo Mortal: solo asignar horas individuales o enviar a revisión
+      actionButtons = `
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" onclick="quickEditHours('${e.id}')" ${locked ? 'disabled' : ''} title="Editar horas de este empleado">✏️ Horas</button>
+          <button class="btn btn-primary btn-sm" onclick="cambiarEstado('${e.id}', 'En revisión')" ${e.estado !== 'Borrador' ? 'disabled' : ''}>A revisión</button>
+        </div>
+      `;
+    }
+
+    tr.innerHTML = `
+      <td class="td-check">
+        <input type="checkbox" class="chk-emp" data-id="${e.id}" ${isSel ? 'checked' : ''}>
+      </td>
+      <td>
+        <strong>${esc(e.nombre)}</strong><br>
+        <span class="badge ${cargoBadgeClass} badge-cargo">${esc(e.cargo)}</span>
+        <span class="muted" style="font-size:11px"> · ${esc(e.email)} · ${e.numHijos} hijo(s)</span>
+      </td>
+      <td>
+        <span style="font-size:12px">${horasStr}</span>
+      </td>
+      <td>
+        <strong>$${fmt(e.tarifa)}</strong>/h
+      </td>
+      <td>
+        <div class="kv">
+          <span>Base IBC:</span> <strong>$${fmt(c.base)}</strong>
+          <span>Deducciones (8.52%):</span> <strong>-$${fmt(c.total)}</strong>
+          <span>Subsidio hijos:</span> <strong>+$${fmt(c.sub)}</strong>
+          <span style="font-weight:700">Neto:</span> <strong class="net-val">$${fmt(c.neto)}</strong>
+        </div>
+      </td>
+      <td>
+        <span class="badge ${e.estado === 'Autorizada' || e.estado === 'Enviada' ? 'ok' : (e.estado === 'En revisión' ? 'warn' : '')}">
+          ${esc(e.estado)}
+        </span>
+      </td>
+      <td>
+        ${actionButtons}
+      </td>
+    `;
+
+    // Evento de selección de casilla
+    const chk = tr.querySelector('.chk-emp');
+    chk.onchange = (ev) => {
+      ev.stopPropagation();
+      if (chk.checked) {
+        selectedIds.add(e.id);
+        tr.classList.add('selected');
+      } else {
+        selectedIds.delete(e.id);
+        tr.classList.remove('selected');
+      }
+      updateBulkBadge();
+      const allNow = filtered.every(item => selectedIds.has(item.id));
+      $('chkSelectAll').checked = allNow;
+    };
+
+    tb.appendChild(tr);
+  }
+
+  updateBulkBadge();
+}
+
+// Filtros en vivo
+$('filterText').oninput = renderTable;
+$('filterCargo').onchange = renderTable;
+$('filterEstado').onchange = renderTable;
+
+// Casilla "Seleccionar todos los visibles"
+$('chkSelectAll').onchange = () => {
+  const filtered = getFilteredEmployees();
+  if ($('chkSelectAll').checked) {
+    filtered.forEach(e => selectedIds.add(e.id));
+  } else {
+    filtered.forEach(e => selectedIds.delete(e.id));
+  }
+  renderTable();
+};
+
+$('btnClearSelection').onclick = () => {
+  selectedIds.clear();
+  renderTable();
+};
+
+// Asignación Masiva de Horas
+$('btnApplyBulk').onclick = async () => {
+  if (selectedIds.size === 0) return;
+
+  const hOrd = parseFloat($('bulk_ord').value) || 0;
+  const hNoct = parseFloat($('bulk_noct').value) || 0;
+  const hDom = parseFloat($('bulk_dom').value) || 0;
+
+  if (hOrd < 0 || hNoct < 0 || hDom < 0) {
+    alert('Las horas deben ser valores iguales o mayores a 0.');
+    return;
+  }
+
+  const ids = Array.from(selectedIds);
+  try {
+    const res = await api('POST', '/api/employees/bulk-hours', { ids, hOrd, hNoct, hDom });
+    alert(`¡Horas asignadas con éxito a ${res.updated} empleado(s)!`);
+    selectedIds.clear();
+    await refresh();
+  } catch (err) {
+    alert(`Error al asignar horas: ${err.message}`);
+  }
+};
+
+// Edición rápida individual de horas (para mortal)
+window.quickEditHours = async (id) => {
+  const emp = allEmployees.find(e => e.id === id);
+  if (!emp) return;
+
+  const nOrd = prompt(`Horas ordinarias para ${emp.nombre}:`, emp.hOrd);
+  if (nOrd === null) return;
+  const nNoct = prompt(`Horas nocturnas (7pm–6am) para ${emp.nombre}:`, emp.hNoct);
+  if (nNoct === null) return;
+  const nDom = prompt(`Horas dominicales/festivas para ${emp.nombre}:`, emp.hDom);
+  if (nDom === null) return;
+
+  const hOrd = parseFloat(nOrd) || 0;
+  const hNoct = parseFloat(nNoct) || 0;
+  const hDom = parseFloat(nDom) || 0;
+
+  try {
+    await api('POST', '/api/employees/bulk-hours', { ids: [id], hOrd, hNoct, hDom });
+    await refresh();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+// Modificación de Tarifas por Cargo (Modo Administrador)
+$('btnSaveRates').onclick = async () => {
+  $('rateMsg').textContent = 'Guardando...';
+  $('rateMsg').style.color = 'var(--muted)';
+
+  const gerente = parseFloat($('rate_gerente').value);
+  const administrativo = parseFloat($('rate_admin').value);
+  const operario = parseFloat($('rate_operario').value);
+
+  if (!gerente || !administrativo || !operario || gerente <= 0 || administrativo <= 0 || operario <= 0) {
+    $('rateMsg').textContent = 'Las tarifas deben ser mayores a 0.';
+    $('rateMsg').style.color = 'var(--danger)';
+    return;
+  }
+
+  try {
+    await api('PUT', '/api/cargos', { gerente, administrativo, operario });
+    $('rateMsg').textContent = '✓ ¡Tarifas actualizadas y propagadas a empleados en Borrador!';
+    $('rateMsg').style.color = 'var(--ok)';
+    setTimeout(() => { $('rateMsg').textContent = ''; }, 4000);
+    await refresh();
+  } catch (err) {
+    $('rateMsg').textContent = `Error: ${err.message}`;
+    $('rateMsg').style.color = 'var(--danger)';
+  }
+};
+
+// Flujo de estados (Borrador -> En revisión -> Autorizada -> Enviada)
+window.cambiarEstado = async (id, nuevoEstado) => {
+  try {
+    await api('POST', `/api/employees/${id}/estado`, { estado: nuevoEstado });
+    await refresh();
+  } catch (err) {
+    alert(`No se pudo cambiar de estado: ${err.message}`);
+  }
+};
+
+// Formulario de Empleado (Admin)
+$('frmEmp').onsubmit = async (ev) => {
+  ev.preventDefault();
+  $('formErr').textContent = '';
+
+  const tVal = $('f_tarifa').value.trim();
+  const payload = {
+    nombre: $('f_nombre').value.trim(),
+    email: $('f_email').value.trim(),
+    cargo: $('f_cargo').value,
+    numHijos: parseInt($('f_hijos').value, 10),
+    tarifa: tVal ? parseFloat(tVal) : 0,
+    hOrd: parseFloat($('f_ord').value) || 0,
+    hNoct: parseFloat($('f_noct').value) || 0,
+    hDom: parseFloat($('f_dom').value) || 0,
+    activo: $('f_activo').value === '1'
+  };
+
+  try {
+    if (editingEmpId) {
+      await api('PUT', `/api/employees/${editingEmpId}`, payload);
+    } else {
+      await api('POST', '/api/employees', payload);
+    }
+    resetEmpForm();
+    await refresh();
+  } catch (err) {
+    $('formErr').textContent = err.message;
+  }
+};
+
+window.editEmp = (id) => {
+  const e = allEmployees.find(x => x.id === id);
+  if (!e) return;
+  editingEmpId = e.id;
+  $('f_id').value = e.id;
+  $('f_nombre').value = e.nombre;
+  $('f_email').value = e.email;
+  $('f_cargo').value = e.cargo;
+  $('f_hijos').value = e.numHijos;
+  $('f_tarifa').value = e.tarifa;
+  $('f_ord').value = e.hOrd;
+  $('f_noct').value = e.hNoct;
+  $('f_dom').value = e.hDom;
+  $('f_activo').value = e.activo ? '1' : '0';
+  $('formTitle').textContent = `Editar ${e.nombre}`;
+  $('btnSaveEmp').textContent = 'Guardar Cambios';
+  window.scrollTo({ top: $('adminPanel').offsetTop, behavior: 'smooth' });
+};
+
+function resetEmpForm() {
+  $('frmEmp').reset();
+  editingEmpId = null;
+  $('f_id').value = '';
+  $('formTitle').textContent = 'Agregar Personal';
+  $('btnSaveEmp').textContent = 'Guardar Empleado';
+  $('formErr').textContent = '';
+  $('f_hijos').value = 0;
+  $('f_ord').value = 150;
+  $('f_noct').value = 10;
+  $('f_dom').value = 8;
+}
+$('btnClearEmp').onclick = resetEmpForm;
+
+// Modal Generador Masivo Ficticio
+$('btnOpenGenModal').onclick = () => { $('genModal').classList.add('open'); };
+$('btnCloseGenModal').onclick = () => { $('genModal').classList.remove('open'); };
+$('genModal').onclick = (e) => { if (e.target === $('genModal')) $('genModal').classList.remove('open'); };
+
+$('frmGen').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const count = parseInt($('gen_count').value, 10) || 10;
+  const cargo = $('gen_cargo').value;
+
+  $('btnSubmitGen').disabled = true;
+  $('btnSubmitGen').textContent = 'Generando...';
+
+  try {
+    const res = await api('POST', '/api/generate-employees', { count, cargo });
+    $('genModal').classList.remove('open');
+    alert(`✓ Se generaron ${res.created} empleados ficticios con éxito.`);
+    await refresh();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  } finally {
+    $('btnSubmitGen').disabled = false;
+    $('btnSubmitGen').textContent = 'Generar y Agregar';
+  }
+};
+
+// Reiniciar base a 100 empleados ficticios
+$('btnResetSeed').onclick = async () => {
+  if (!confirm('¿Deseas restablecer la base de datos completa a 100 empleados ficticios colombianos?')) return;
+  try {
+    await api('POST', '/api/seed');
+    selectedIds.clear();
+    alert('✓ Base de datos reiniciada con 100 empleados ficticios colombianos.');
+    await refresh();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+};
+
+// Inicialización
+setMode(currentMode);
+refresh();
 </script>
 </body>
 </html>

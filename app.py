@@ -8,6 +8,7 @@ Uso: python3 app.py [--port 8000] [--force]  ->  http://localhost:8000/
 """
 import json
 import os
+import random
 import re
 import shutil
 import signal
@@ -16,6 +17,8 @@ import sqlite3
 import subprocess
 import sys
 import time
+import unicodedata
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -30,11 +33,95 @@ FLOW = ["Borrador", "En revisión", "Autorizada", "Enviada"]
 NEXT = {"Borrador": "En revisión", "En revisión": "Autorizada", "Autorizada": "Enviada"}
 
 DEFAULT_PARAMS = {"salud": 0.04, "pension": 0.04, "arl": 0.00522,
-                  "recNoct": 1.35, "recDom": 1.90, "version": "v2026-10-3ded"}
+                  "recNoct": 1.35, "recDom": 1.90, "version": "v2026-10-ley-colombia"}
 
 CARGOS = ("gerente", "administrativo", "operario")
 # Tarifa distinta por cargo (default híbrido, editable vía API/UI). O(1) lookup.
 DEFAULT_CARGO_RATES = {"gerente": 35000, "administrativo": 20000, "operario": 15000}
+
+NOMBRES_COL = [
+    "Carlos", "Andrés", "Juan", "Felipe", "Mateo", "Santiago", "Alejandro", "Diego",
+    "Esteban", "Daniel", "Camilo", "Sebastián", "Nicolás", "Julián", "David", "Gabriel",
+    "Samuel", "Álvaro", "Rodrigo", "Fernando", "Laura", "Valentina", "Camila", "Mariana",
+    "Daniela", "Sofía", "Isabella", "Natalia", "Paola", "Carolina", "Diana", "Juliana",
+    "Catalina", "Gabriela", "Andrea", "Alejandra", "Lucía", "Elena", "Manuela", "Tatiana"
+]
+
+APELLIDOS_COL = [
+    "Gómez", "Rodríguez", "Martínez", "García", "López", "Hernández", "González", "Pérez",
+    "Sánchez", "Ramírez", "Torres", "Flores", "Díaz", "Vargas", "Castro", "Morales",
+    "Ortiz", "Gutiérrez", "Chávez", "Ramos", "Herrera", "Jiménez", "Moreno", "Medina",
+    "Rojas", "Cardona", "Restrepo", "Montoya", "Valencia", "Ospina", "Quintero", "Duque",
+    "Jaramillo", "Mejía", "Zapata", "Berrío", "Londoño", "Uribe", "Ceballos", "Salazar"
+]
+
+
+def _slugify(text: str) -> str:
+    nfkd = unicodedata.normalize('NFKD', text)
+    cleaned = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return re.sub(r'[^a-zA-Z0-9]+', '', cleaned).lower()
+
+
+def create_fictional_employees(count: int, cargo_mode: str = "mixto") -> int:
+    """Genera `count` empleados ficticios con datos colombianos realistas."""
+    rates = get_cargo_rates()
+    now = datetime.now(timezone.utc).isoformat()
+    con = db()
+    created = 0
+
+    for _ in range(count):
+        nom = random.choice(NOMBRES_COL)
+        ap1 = random.choice(APELLIDOS_COL)
+        ap2 = random.choice(APELLIDOS_COL)
+        nombre_completo = f"{nom} {ap1} {ap2}"
+
+        if cargo_mode in CARGOS:
+            cargo = cargo_mode
+        else:
+            r = random.random()
+            if r < 0.12:
+                cargo = "gerente"
+            elif r < 0.42:
+                cargo = "administrativo"
+            else:
+                cargo = "operario"
+
+        tarifa = rates.get(cargo, DEFAULT_CARGO_RATES.get(cargo, 20000))
+        eid = "emp_" + uuid.uuid4().hex[:8]
+        slug_user = f"{_slugify(nom)}.{_slugify(ap1)}"
+        email = f"{slug_user}.{uuid.uuid4().hex[:4]}@empresa.co"
+
+        # Distribución de hijos
+        hp = random.random()
+        hijos = 0 if hp < 0.40 else (1 if hp < 0.70 else (2 if hp < 0.90 else 3))
+
+        # Horas base según cargo
+        if cargo == "gerente":
+            h_ord = random.choice([150, 160])
+            h_noct = random.choice([0, 5, 10])
+            h_dom = random.choice([0, 4])
+        elif cargo == "administrativo":
+            h_ord = random.choice([150, 160])
+            h_noct = random.choice([0, 8, 12])
+            h_dom = random.choice([0, 4, 8])
+        else:
+            h_ord = random.choice([140, 150, 160])
+            h_noct = random.choice([10, 15, 20, 25])
+            h_dom = random.choice([8, 12, 16])
+
+        try:
+            con.execute("""
+                INSERT INTO employees(id, nombre, email, cargo, tarifa, h_ord, h_noct, h_dom, num_hijos, activo, updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            """, (eid, nombre_completo, email, cargo, float(tarifa), float(h_ord), float(h_noct), float(h_dom), hijos, 1, now))
+            con.execute("INSERT INTO payslips(employee_id, estado, updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
+            created += 1
+        except sqlite3.IntegrityError:
+            continue
+
+    con.commit()
+    con.close()
+    return created
 
 
 def subsidio(num_hijos: int) -> int:
@@ -106,16 +193,21 @@ def init_db():
     for _cargo, _tar in DEFAULT_CARGO_RATES.items():
         con.execute("INSERT OR IGNORE INTO cargo_rates(cargo,tarifa_default,updated_at) VALUES(?,?,?)",
                     (_cargo, float(_tar), now_seed))
+    emp_count = con.execute("SELECT COUNT(*) c FROM employees").fetchone()["c"]
     con.commit()
     con.close()
+    if emp_count < 100:
+        create_fictional_employees(100 - emp_count, "mixto")
 
 
 def get_params() -> dict:
     con = db()
     r = con.execute("SELECT * FROM app_params LIMIT 1").fetchone()
     con.close()
-    return {"salud": r["salud"], "pension": r["pension"], "arl": r["arl"],
-            "recNoct": r["rec_noct"], "recDom": r["rec_dom"], "version": r["version"]}
+    rec_noct = float(r["rec_noct"]) if r else 1.35
+    rec_dom = float(r["rec_dom"]) if r else 1.90
+    return {"salud": 0.04, "pension": 0.04, "arl": 0.00522,
+            "recNoct": rec_noct, "recDom": rec_dom, "version": "v2026-10-ley-colombia"}
 
 
 def get_cargo_rates() -> dict:
@@ -219,6 +311,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": True, "db": str(DB_PATH.name)})
         if u.path == "/api/params":
             return self._json(get_params())
+        if u.path == "/api/cargos":
+            return self._json(get_cargo_rates())
         if u.path == "/api/employees":
             con = db()
             rows = con.execute("SELECT * FROM employees ORDER BY nombre").fetchall()  # O(n log n) por ORDER BY
@@ -243,19 +337,58 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         u = urlparse(self.path)
+        if u.path == "/api/generate-employees":
+            b = self._body()
+            try:
+                count = int(b.get("count", 10))
+            except (TypeError, ValueError):
+                count = 10
+            count = max(1, min(count, 500))
+            cargo_mode = b.get("cargo", "mixto")
+            created = create_fictional_employees(count, cargo_mode)
+            return self._json({"ok": True, "created": created})
+        if u.path == "/api/employees/bulk-hours":
+            b = self._body()
+            ids = b.get("ids", [])
+            if not isinstance(ids, list) or not ids:
+                return self._json({"error": "No se seleccionaron empleados."}, 400)
+            try:
+                h_ord = float(b.get("hOrd", 0))
+                h_noct = float(b.get("hNoct", 0))
+                h_dom = float(b.get("hDom", 0))
+            except (TypeError, ValueError):
+                return self._json({"error": "Horas deben ser números válidos."}, 400)
+            if min(h_ord, h_noct, h_dom) < 0:
+                return self._json({"error": "Las horas deben ser >= 0."}, 400)
+            now = datetime.now(timezone.utc).isoformat()
+            con = db()
+            q_marks = ",".join("?" for _ in ids)
+            cur = con.cursor()
+            cur.execute(f"""
+                UPDATE employees
+                SET h_ord=?, h_noct=?, h_dom=?, updated_at=?
+                WHERE id IN ({q_marks})
+                  AND id IN (SELECT employee_id FROM payslips WHERE estado = 'Borrador')
+            """, [h_ord, h_noct, h_dom, now] + ids)
+            updated_count = cur.rowcount
+            con.commit()
+            con.close()
+            return self._json({"ok": True, "updated": updated_count})
         if u.path == "/api/employees":
             b = self._body()
             err = validate_emp(b)
             if err:
                 return self._json({"error": err}, 400)
-            import uuid
+            tarifa = resolve_tarifa(b["cargo"], b.get("tarifa"))
+            if not tarifa or tarifa <= 0:
+                return self._json({"error": "Tarifa debe ser > 0."}, 400)
             eid = "emp_" + uuid.uuid4().hex[:8]
             now = datetime.now(timezone.utc).isoformat()
             con = db()
             try:
                 con.execute("""INSERT INTO employees(id,nombre,email,cargo,tarifa,h_ord,h_noct,h_dom,num_hijos,activo,updated_at)
                                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-                            (eid, b["nombre"].strip(), b["email"].strip(), b["cargo"], float(b["tarifa"]),
+                            (eid, b["nombre"].strip(), b["email"].strip(), b["cargo"], float(tarifa),
                              float(b.get("hOrd", 0)), float(b.get("hNoct", 0)), float(b.get("hDom", 0)),
                              int(b.get("numHijos", 0)), 1 if b.get("activo", True) else 0, now))
                 con.execute("INSERT INTO payslips(employee_id,estado,updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
@@ -267,18 +400,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"id": eid}, 201)
         if u.path == "/api/seed":
             con = db()
-            n = con.execute("SELECT COUNT(*) c FROM employees").fetchone()["c"]
-            if n == 0:
-                import uuid
-                now = datetime.now(timezone.utc).isoformat()
-                eid = "emp_" + uuid.uuid4().hex[:8]
-                con.execute("""INSERT INTO employees(id,nombre,email,cargo,tarifa,h_ord,h_noct,h_dom,num_hijos,activo,updated_at)
-                               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-                            (eid, "Ana Pérez", "ana@empresa.co", "administrativo", 20000, 150, 10, 8, 1, 1, now))
-                con.execute("INSERT INTO payslips(employee_id,estado,updated_at) VALUES(?,?,?)", (eid, "Borrador", now))
-                con.commit()
+            con.execute("DELETE FROM payslips")
+            con.execute("DELETE FROM employees")
+            con.commit()
             con.close()
-            return self._json({"ok": True})
+            created = create_fictional_employees(100, "mixto")
+            return self._json({"ok": True, "created": created})
         m = re.match(r"^/api/employees/([^/]+)/estado$", u.path)
         if m:
             eid, b = m.group(1), self._body()
@@ -314,6 +441,34 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         u = urlparse(self.path)
+        if u.path == "/api/cargos":
+            b = self._body()
+            rates = {}
+            for c in CARGOS:
+                if c in b:
+                    try:
+                        val = float(b[c])
+                        if val <= 0:
+                            return self._json({"error": f"Tarifa de {c} debe ser > 0."}, 400)
+                        rates[c] = val
+                    except (TypeError, ValueError):
+                        return self._json({"error": f"Tarifa de {c} inválida."}, 400)
+            if not rates:
+                return self._json({"error": "No se enviaron tarifas."}, 400)
+            now = datetime.now(timezone.utc).isoformat()
+            con = db()
+            for cargo, val in rates.items():
+                con.execute("INSERT INTO cargo_rates(cargo, tarifa_default, updated_at) VALUES(?,?,?) "
+                            "ON CONFLICT(cargo) DO UPDATE SET tarifa_default=excluded.tarifa_default, updated_at=excluded.updated_at",
+                            (cargo, val, now))
+                con.execute("""
+                    UPDATE employees
+                    SET tarifa = ?, updated_at = ?
+                    WHERE cargo = ? AND id IN (SELECT employee_id FROM payslips WHERE estado = 'Borrador')
+                """, (val, now, cargo))
+            con.commit()
+            con.close()
+            return self._json({"ok": True, "rates": get_cargo_rates()})
         m = re.match(r"^/api/employees/([^/]+)$", u.path)
         if m:
             eid, b = m.group(1), self._body()
@@ -347,36 +502,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": True})
         if u.path == "/api/params":
             b = self._body()
-
-            def _to_frac(v, default):
-                # Contrato: fracción 0-1 (0.04) o % numérico >1 (4) o string "4%" / "0.522%". O(1).
-                if v is None or v == "":
-                    return float(default)
-                if isinstance(v, str) and v.strip().endswith("%"):
-                    return float(v.strip().rstrip("%").strip()) / 100.0
-                f = float(v)
-                if f > 1:
-                    f = f / 100.0
-                return f
-
             try:
-                salud = _to_frac(b.get("salud", 0.04), 0.04)
-                pension = _to_frac(b.get("pension", 0.04), 0.04)
-                arl = _to_frac(b.get("arl", 0.00522), 0.00522)
                 rec_noct = float(b.get("recNoct", 1.35))
                 rec_dom = float(b.get("recDom", 1.90))
             except (TypeError, ValueError):
-                return self._json({"error": "Params numéricos inválidos."}, 400)
-            if not (0 <= salud <= 1 and 0 <= pension <= 1 and 0 <= arl <= 1):
-                return self._json({"error": "Deducciones deben estar entre 0% y 100%."}, 400)
+                return self._json({"error": "Recargos numéricos inválidos."}, 400)
             if not (rec_noct >= 1 and rec_dom >= 1):
                 return self._json({"error": "Recargos deben ser >= 1."}, 400)
             con = db()
-            con.execute("UPDATE app_params SET salud=?, pension=?, arl=?, rec_noct=?, rec_dom=?, version=?",
-                        (salud, pension, arl, rec_noct, rec_dom, "v2026-10-3ded-manual"))
+            con.execute("UPDATE app_params SET salud=0.04, pension=0.04, arl=0.00522, rec_noct=?, rec_dom=?, version=?",
+                        (rec_noct, rec_dom, "v2026-10-ley-colombia"))
             con.commit()
             con.close()
-            return self._json({"ok": True})
+            return self._json({"ok": True, "params": get_params()})
         self.send_error(404)
 
     def log_message(self, *a):

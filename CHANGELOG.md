@@ -1,6 +1,19 @@
 # CHANGELOG — Nómina por horas
 **Zona:** America/Bogota · Formato: `Versión — fecha — Qué / Vs anterior`
 
+## [v1.5.0-dual-roles] — 2026-10-13
+### Qué
+- **Dos modos de visualización e interacción:** Selector en encabezado para alternar inmediatamente entre `Modo Mortal (Operativo)` y `Modo Administrador` sin requerir contraseñas.
+- **Asignación de horas en Modo Mortal:** Buscador por texto en vivo, filtro por cargo y estado, selección múltiple con checkboxes (individual y "seleccionar todos los visibles"), y barra de asignación masiva de horas (ordinarias, nocturnas, dominicales) con propagación simultánea.
+- **Gestión de tarifas por cargo:** Endpoint `PUT /api/cargos` que actualiza las tarifas oficiales de Gerente, Administrativo y Operario, propagando automáticamente el nuevo valor a las liquidaciones en estado `Borrador`.
+- **Deducciones de ley colombiana fijas:** Fijación en backend y UI de las deducciones obligatorias (Salud 4%, Pensión 4%, ARL Riesgo I 0.522%) con insignias informativas de normativa laboral.
+- **Base de datos ficticia de 100 empleados:** Generación automática inicial de 100 empleados colombianos realistas clasificados por cargo en `nomina.db`, junto con un botón y modal interactivo para generar personal ficticio adicional bajo demanda (`POST /api/generate-employees`).
+- **Endpoint de asignación masiva de horas:** `POST /api/employees/bulk-hours` para actualización transaccional de horas.
+
+### Vs anterior
+- Antes: Vista única con formulario general; edición manual empleado por empleado sin selección múltiple ni filtros por cargo; parámetros de deducción editables libremente; base de datos con pocos registros de prueba sin generador masivo.
+- Ahora: Experiencia separada para operarios (modo mortal) y administradores, asignación masiva eficiente en lotes, tarifas centralizadas por cargo, parámetros de ley protegidos y 100 empleados precargados.
+
 ## [v1.4.2-actividad1] — 2026-10-13
 ### Qué
 - Fusión e integración de los documentos y especificaciones de la **Actividad I** del SENA en el subdirectorio `docs/actividad_I/`:
