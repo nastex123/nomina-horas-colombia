@@ -1,6 +1,20 @@
 # CHANGELOG — Nómina por horas
 **Zona:** America/Bogota · Formato: `Versión — fecha — Qué / Vs anterior`
 
+## [v1.4.2-actividad1] — 2026-10-13
+### Qué
+- Fusión e integración de los documentos y especificaciones de la **Actividad I** del SENA en el subdirectorio `docs/actividad_I/`:
+  - `01_SRS_Requisitos.md`: Especificación de requisitos original (regla quincenal con ARL deducida, subsidio por hijos, casos de uso).
+  - `02_Persistencia_SQLite.md`: Documento de persistencia relacional con SQLite y Python.
+  - `03_Fase2_Recargos.md`: Estudio previo e investigación legal Ley 2466/2025 para fases futuras de recargos.
+  - `script_persistencia_sqlite.sql`: Script DDL y de semillas iniciales para SQLite (`cargos`, `empleados`, `config`, `periodos`, `horas`, `festivos`, `liquidaciones`, `envios_log`).
+  - `README.md`: Índice de navegación de la Actividad I.
+- Actualización de `README.md` principal para registrar y enlazar la subcarpeta `docs/actividad_I/`.
+
+### Vs anterior
+- Antes: Los archivos de la Actividad I se encontraban en un directorio externo separado sin trazabilidad en el control de versiones del proyecto.
+- Ahora: Todo el ciclo de vida del proyecto SENA (desde la especificación inicial de la Actividad I hasta el prototipo web funcional) está unificado en el mismo repositorio.
+
 ## [v1.4.1-structure] — 2026-10-06
 ### Qué
 - Organización limpia de repositorio: agrupación de especificaciones técnicas y funcionales en subdirectorio `docs/` (`SRS_FUNCIONAL.md`, `TDD_TECNICO.md`, `DICCIONARIO_DATOS.md`, `GDD_DECISIONES.md`, `MANUAL_OPERATIVO.md`, `MODELO_NEGOCIO.md`, `ROADMAP.md`).

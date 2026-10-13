@@ -74,7 +74,13 @@ docs/                   # Documentación técnica y especificaciones
   ├── GDD_DECISIONES.md     # Registro de decisiones de diseño (ADRs)
   ├── MANUAL_OPERATIVO.md   # Guía operativa y troubleshooting
   ├── MODELO_NEGOCIO.md     # Justificación de negocio y casos de uso
-  └── ROADMAP.md            # Fases de evolución del sistema
+  ├── ROADMAP.md            # Fases de evolución del sistema
+  └── actividad_I/          # Entregables y especificaciones de Actividad I SENA
+      ├── 01_SRS_Requisitos.md           # Requisitos iniciales y reglas de cálculo
+      ├── 02_Persistencia_SQLite.md       # Diseño de persistencia relacional
+      ├── 03_Fase2_Recargos.md            # Investigación legal y fase de recargos
+      ├── script_persistencia_sqlite.sql # Script DDL inicial SQLite
+      └── README.md                      # Índice de la Actividad I
 ```
 
 ## 8. Legal CO vigente Oct-2026
@@ -86,6 +92,7 @@ docs/                   # Documentación técnica y especificaciones
 ## 9. Docs relacionados
 - Funcional: `docs/SRS_FUNCIONAL.md` · Técnico: `docs/TDD_TECNICO.md` · Datos: `docs/DICCIONARIO_DATOS.md`
 - Plan: `docs/ROADMAP.md` · Pendientes: `TODO.md` · Cambios: `CHANGELOG.md` · Decisiones: `docs/GDD_DECISIONES.md` · Uso: `docs/MANUAL_OPERATIVO.md` · Negocio: `docs/MODELO_NEGOCIO.md`
+- Actividad I SENA: `docs/actividad_I/README.md` (SRS inicial, persistencia y script SQL)
 
 > [!TIP]
 > Siguiente paso sugerido: validar con contabilidad el neto 3.519.424 sin caja y congelar `v2026-10-3ded`.
